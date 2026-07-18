@@ -329,6 +329,11 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
       <input type="range" id="crossfader" min="0" max="100" value="50">
       <span class="b">B</span>
     </div>
+    <div class="slider-row" style="margin-top:14px;text-align:left">
+      <span class="lbl">🔊 Volume</span>
+      <input type="range" id="masterVolume" min="0" max="100" value="100">
+      <b id="masterVolumeLabel">100%</b>
+    </div>
     <div class="tempo-match-row">
       <button class="btn" id="matchTempoBtn">🔄 Sync Deck B to Deck A</button>
       <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:6px" id="syncHint">BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.</div>
@@ -987,6 +992,13 @@ function applyCrossfader(){
 }
 crossfaderEl.addEventListener('input', applyCrossfader);
 applyCrossfader();
+
+const masterVolumeEl = document.getElementById('masterVolume');
+masterVolumeEl.addEventListener('input', (e) => {
+  const pct = Number(e.target.value);
+  masterGain.gain.value = pct / 100;
+  document.getElementById('masterVolumeLabel').textContent = pct + '%';
+});
 
 // ---------- Sync: matches Deck B's speed to Deck A's BPM (auto-detected or tapped), then nudges
 // B's beat phase to line up with A's, using A's beat length as the shared grid. ----------
