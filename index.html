@@ -58,6 +58,7 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
 .track-item.active { background: var(--deck-accent); color: #fff; }
 .track-item .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-item .tdel { opacity: 0.7; cursor: pointer; padding: 2px 4px; }
+.track-item .tpreview { opacity: 0.85; cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
 .empty-note { padding: 10px; font-size: 0.76rem; color: var(--ink-soft); font-style: italic; text-align: center; }
 
 .now-playing { font-weight: 800; font-size: 0.9rem; margin-bottom: 8px; word-break: break-word; min-height: 1.2em; }
@@ -178,6 +179,29 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
     </div>
   </div>
 
+  <div class="crossfader-card" id="previewCard">
+    <h3>🎧 Preview / Cue</h3>
+    <div class="cf-row" style="margin-bottom:10px">
+      <span style="font-size:0.78rem;color:var(--ink-soft)">Output:</span>
+      <select id="previewDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
+        <option value="">Default (same as decks)</option>
+      </select>
+      <button class="btn small" id="unlockDevicesBtn">Show my devices</button>
+    </div>
+    <div class="now-playing" id="previewNowPlaying" style="text-align:left">Tap 🎧 next to any track in a deck's list to preview it here</div>
+    <div class="seek-row">
+      <span class="time-lbl" id="previewCurTime">0:00</span>
+      <input type="range" id="previewSeek" min="0" max="100" value="0" step="0.1">
+      <span class="time-lbl" id="previewDurTime">0:00</span>
+    </div>
+    <div class="deck-controls">
+      <button class="btn accent" id="previewPlayBtn">▶ Play</button>
+      <button class="btn small" id="previewStopBtn">⏹ Stop</button>
+    </div>
+    <div id="previewDeviceNote" style="font-size:0.7rem;color:var(--ink-soft);margin-top:8px;text-align:left"></div>
+    <audio id="previewAudio" style="display:none"></audio>
+  </div>
+
   <div class="crossfader-card">
     <h3>Crossfader</h3>
     <div class="cf-row">
@@ -280,14 +304,23 @@ async function renderTrackList(deck){
   listEl.innerHTML = tracks.map(t => `
     <div class="track-item${t.id === d.currentTrackId ? ' active' : ''}" data-id="${t.id}">
       <span class="tname">${t.id === d.currentTrackId ? '▶ ' : ''}${escapeHtml(t.name)}</span>
+      <span class="tpreview" data-preview="${t.id}" title="Preview this track">🎧</span>
       <span class="tdel" data-del="${t.id}">✕</span>
     </div>`).join('');
   listEl.querySelectorAll('.track-item').forEach(item => {
     item.addEventListener('click', async (e) => {
-      if(e.target.dataset.del) return;
+      if(e.target.dataset.del || e.target.dataset.preview) return;
       const id = Number(item.dataset.id);
       const t = tracks.find(x => x.id === id);
       if(t) loadTrack(deck, t);
+    });
+  });
+  listEl.querySelectorAll('[data-preview]').forEach(previewBtn => {
+    previewBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = Number(previewBtn.dataset.preview);
+      const t = tracks.find(x => x.id === id);
+      if(t) previewTrack(t);
     });
   });
   listEl.querySelectorAll('[data-del]').forEach(delBtn => {
@@ -422,6 +455,85 @@ function updateLoopLabel(deck){
     label.textContent = 'No loop section set';
   }
 }
+
+// ---------- Preview / cue player: independent of both decks, so auditioning a track never
+// disturbs whatever's live in the mix. Where the browser supports it (Chrome/Edge, not Safari),
+// it can be routed to a specific output device - e.g. headphones - separately from the decks. ----------
+const previewAudio = document.getElementById('previewAudio');
+
+async function previewTrack(track){
+  if(previewAudio.dataset.blobUrl) URL.revokeObjectURL(previewAudio.dataset.blobUrl);
+  const url = URL.createObjectURL(track.blob);
+  previewAudio.dataset.blobUrl = url;
+  previewAudio.src = url;
+  previewAudio.play().catch(() => {});
+  document.getElementById('previewNowPlaying').textContent = '🎧 ' + track.name;
+}
+
+previewAudio.addEventListener('play', () => { document.getElementById('previewPlayBtn').textContent = '⏸ Pause'; });
+previewAudio.addEventListener('pause', () => { document.getElementById('previewPlayBtn').textContent = '▶ Play'; });
+previewAudio.addEventListener('loadedmetadata', () => {
+  document.getElementById('previewSeek').max = previewAudio.duration;
+  document.getElementById('previewDurTime').textContent = fmtTime(previewAudio.duration);
+});
+previewAudio.addEventListener('timeupdate', () => {
+  document.getElementById('previewSeek').value = previewAudio.currentTime;
+  document.getElementById('previewCurTime').textContent = fmtTime(previewAudio.currentTime);
+});
+document.getElementById('previewSeek').addEventListener('input', (e) => { previewAudio.currentTime = Number(e.target.value); });
+document.getElementById('previewPlayBtn').addEventListener('click', () => {
+  if(!previewAudio.src) return;
+  if(previewAudio.paused) previewAudio.play(); else previewAudio.pause();
+});
+document.getElementById('previewStopBtn').addEventListener('click', () => {
+  previewAudio.pause();
+  previewAudio.currentTime = 0;
+});
+
+const previewDeviceSelect = document.getElementById('previewDeviceSelect');
+const previewDeviceNote = document.getElementById('previewDeviceNote');
+
+async function populateOutputDevices(){
+  if(!previewAudio.setSinkId){
+    previewDeviceNote.textContent = "Your browser doesn't support choosing a specific output device - preview plays through the same output as the decks.";
+    previewDeviceSelect.disabled = true;
+    document.getElementById('unlockDevicesBtn').style.display = 'none';
+    return;
+  }
+  try{
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outputs = devices.filter(d => d.kind === 'audiooutput');
+    const labelled = outputs.filter(d => d.label);
+    previewDeviceSelect.innerHTML = '<option value="">Default (same as decks)</option>' +
+      outputs.map(d => `<option value="${d.deviceId}">${escapeHtml(d.label || 'Output device')}</option>`).join('');
+    if(!labelled.length){
+      previewDeviceNote.textContent = 'Device names are hidden until you allow access below - tap "Show my devices" to see them (e.g. your headphones by name), so you can send previews there instead of the main speakers.';
+    } else {
+      previewDeviceNote.textContent = 'Pick your headphones here to preview privately while the decks keep playing on the main output.';
+    }
+  }catch(err){
+    previewDeviceNote.textContent = "Couldn't list audio output devices.";
+  }
+}
+
+document.getElementById('unlockDevicesBtn').addEventListener('click', async () => {
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop());
+    await populateOutputDevices();
+  }catch(err){
+    previewDeviceNote.textContent = "Permission needed to show device names by their real names - you can still pick from the unnamed list, or just use the default output.";
+  }
+});
+
+previewDeviceSelect.addEventListener('change', async (e) => {
+  if(previewAudio.setSinkId){
+    try{ await previewAudio.setSinkId(e.target.value); }
+    catch(err){ previewDeviceNote.textContent = "Couldn't switch to that device."; }
+  }
+});
+
+populateOutputDevices();
 
 // Equal-power crossfade for a smoother blend than plain linear.
 const crossfaderEl = document.getElementById('crossfader');
