@@ -62,9 +62,15 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
 .empty-note { padding: 10px; font-size: 0.76rem; color: var(--ink-soft); font-style: italic; text-align: center; }
 
 .now-playing { font-weight: 800; font-size: 0.9rem; margin-bottom: 8px; word-break: break-word; min-height: 1.2em; }
+.waveform { width: 100%; height: 64px; display: block; border-radius: 8px; background: var(--surface-2); margin-bottom: 8px; cursor: pointer; }
 .seek-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .seek-row input[type="range"] { flex: 1; }
 .time-lbl { font-size: 0.7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.cue-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.cue-btn.set { background: var(--good); border-color: var(--good); color: #fff; }
+.fx-section { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+.fx-section .fx-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; }
 
 .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.78rem; }
 .slider-row span.lbl { width: 46px; flex-shrink: 0; color: var(--ink-soft); }
@@ -84,6 +90,17 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
 .tempo-match-row { margin-top: 12px; }
 
 .footer-note { text-align: center; color: var(--ink-soft); font-size: 0.76rem; margin-top: 30px; line-height: 1.7; }
+
+.help-card { background: var(--surface); border-radius: 16px; padding: 4px 16px; box-shadow: var(--shadow); margin-bottom: 16px; }
+.help-card summary { cursor: pointer; padding: 12px 0; font-weight: 800; font-size: 0.9rem; list-style: none; display: flex; align-items: center; gap: 8px; }
+.help-card summary::-webkit-details-marker { display: none; }
+.help-card summary::before { content: '▶'; font-size: 0.6rem; transition: transform 0.15s ease; color: var(--ink-soft); }
+.help-card[open] summary::before { transform: rotate(90deg); }
+.help-card .help-body { padding: 0 0 16px; font-size: 0.82rem; line-height: 1.6; color: var(--ink-soft); }
+.help-card .help-body h4 { color: var(--ink); font-size: 0.82rem; margin: 14px 0 4px; }
+.help-card .help-body h4:first-child { margin-top: 0; }
+.help-card .help-body ul { margin: 4px 0; padding-left: 18px; }
+.help-card .help-body li { margin-bottom: 3px; }
 </style>
 </head>
 <body>
@@ -95,6 +112,45 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
     <p>A two-deck mixer that runs entirely in your browser. Add your own tracks (or a video's sound), crossfade between decks, adjust speed and tone, tap tempo. Nothing is ever uploaded anywhere.</p>
   </header>
 
+  <details class="help-card">
+    <summary>❓ How to use Mixing Decks</summary>
+    <div class="help-body">
+      <h4>Getting started</h4>
+      <ul>
+        <li><b>➕ Add Track</b> loads a song (or any video's sound) into that deck's library. Tap a track in the list to load it onto the deck.</li>
+        <li><b>🎧</b> next to any track previews it independently — it won't disturb what's playing on the decks.</li>
+      </ul>
+      <h4>Waveform &amp; BPM</h4>
+      <ul>
+        <li>A waveform is drawn automatically after a track loads — tap or click anywhere on it to jump there.</li>
+        <li>BPM is detected automatically a moment after loading (labelled "auto"). If a track's beat is unclear, tap <b>👆 Tap Tempo</b> in time with the music instead — at least 4 taps.</li>
+      </ul>
+      <h4>Cues, loops &amp; sync</h4>
+      <ul>
+        <li><b>Cue 1–4:</b> first tap sets a marker at the current position, second tap jumps straight there. <b>Clear cues</b> resets all four.</li>
+        <li><b>🔂 4 / 8 / 16 beats:</b> instantly loops that many beats from wherever the track is playing, using its BPM.</li>
+        <li><b>🔄 Sync Deck B to Deck A:</b> matches B's speed to A's BPM and nudges its beat to line up — fine-tune by ear afterwards.</li>
+      </ul>
+      <h4>Tone &amp; FX</h4>
+      <ul>
+        <li><b>Speed / Bass / Treble</b> control playback rate and simple EQ per deck.</li>
+        <li><b>Filter:</b> centre is off — drag left for a closing lowpass sweep, right for an opening highpass sweep (classic build/drop effect).</li>
+        <li><b>Echo / Reverb:</b> 0 is off; raise for more effect. Great on the outgoing track during a transition.</li>
+      </ul>
+      <h4>Crossfader &amp; recording</h4>
+      <ul>
+        <li>The <b>Crossfader</b> blends between Deck A and Deck B.</li>
+        <li><b>⏺ Record the Mix</b> captures exactly what you hear — both decks, the crossfader position and all FX — and gives you a file to download when you stop.</li>
+      </ul>
+      <h4>Audio routing (headphones + speakers at once)</h4>
+      <ul>
+        <li>Tap <b>Show my devices</b> once to see your speakers and headphones by name.</li>
+        <li>Set <b>Decks (mix)</b> to your speakers and <b>Preview</b> to your headphones to cue up the next track privately while the crowd hears the current mix — just like a real DJ booth.</li>
+        <li>Without this, plugging in headphones can silently become your computer's new default output for everything.</li>
+      </ul>
+    </div>
+  </details>
+
   <div class="decks-grid">
     <div class="deck deckA" id="deck-A">
       <h2>Deck A</h2>
@@ -104,6 +160,7 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
       </div>
       <div class="track-list" id="trackList-A"></div>
       <div class="now-playing" id="nowPlaying-A">No track loaded</div>
+      <canvas class="waveform" id="waveform-A" height="64"></canvas>
       <div class="seek-row">
         <span class="time-lbl" id="curTime-A">0:00</span>
         <input type="range" id="seek-A" min="0" max="100" value="0" step="0.1">
@@ -113,6 +170,13 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
         <button class="btn accent" id="playBtn-A">▶ Play</button>
         <button class="btn small" id="tapBtn-A">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-A" style="cursor:default">-- BPM</span>
+      </div>
+      <div class="cue-row" id="cueRow-A">
+        <button class="btn small cue-btn" data-cue="0" data-deck="A">Cue 1</button>
+        <button class="btn small cue-btn" data-cue="1" data-deck="A">Cue 2</button>
+        <button class="btn small cue-btn" data-cue="2" data-deck="A">Cue 3</button>
+        <button class="btn small cue-btn" data-cue="3" data-deck="A">Cue 4</button>
+        <button class="btn small" id="cueClear-A" title="Clear all hot cues">Clear cues</button>
       </div>
       <div class="slider-row">
         <span class="lbl">Speed</span>
@@ -134,6 +198,27 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
         <button class="btn small" id="loopStart-A">Set Loop Start</button>
         <button class="btn small" id="loopEnd-A">Set Loop End</button>
         <button class="btn small" id="loopToggle-A">🔁 Loop Off</button>
+        <button class="btn small" data-quickloop="4" data-deck="A">🔂 4 beats</button>
+        <button class="btn small" data-quickloop="8" data-deck="A">🔂 8 beats</button>
+        <button class="btn small" data-quickloop="16" data-deck="A">🔂 16 beats</button>
+      </div>
+      <div class="fx-section">
+        <div class="fx-title">FX</div>
+        <div class="slider-row">
+          <span class="lbl">Filter</span>
+          <input type="range" id="filter-A" min="-100" max="100" value="0">
+          <b id="filterLabel-A">Off</b>
+        </div>
+        <div class="slider-row">
+          <span class="lbl">Echo</span>
+          <input type="range" id="echo-A" min="0" max="100" value="0">
+          <b id="echoLabel-A">Off</b>
+        </div>
+        <div class="slider-row">
+          <span class="lbl">Reverb</span>
+          <input type="range" id="reverb-A" min="0" max="100" value="0">
+          <b id="reverbLabel-A">Off</b>
+        </div>
       </div>
     </div>
 
@@ -145,6 +230,7 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
       </div>
       <div class="track-list" id="trackList-B"></div>
       <div class="now-playing" id="nowPlaying-B">No track loaded</div>
+      <canvas class="waveform" id="waveform-B" height="64"></canvas>
       <div class="seek-row">
         <span class="time-lbl" id="curTime-B">0:00</span>
         <input type="range" id="seek-B" min="0" max="100" value="0" step="0.1">
@@ -154,6 +240,13 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
         <button class="btn accent" id="playBtn-B">▶ Play</button>
         <button class="btn small" id="tapBtn-B">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-B" style="cursor:default">-- BPM</span>
+      </div>
+      <div class="cue-row" id="cueRow-B">
+        <button class="btn small cue-btn" data-cue="0" data-deck="B">Cue 1</button>
+        <button class="btn small cue-btn" data-cue="1" data-deck="B">Cue 2</button>
+        <button class="btn small cue-btn" data-cue="2" data-deck="B">Cue 3</button>
+        <button class="btn small cue-btn" data-cue="3" data-deck="B">Cue 4</button>
+        <button class="btn small" id="cueClear-B" title="Clear all hot cues">Clear cues</button>
       </div>
       <div class="slider-row">
         <span class="lbl">Speed</span>
@@ -175,19 +268,47 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
         <button class="btn small" id="loopStart-B">Set Loop Start</button>
         <button class="btn small" id="loopEnd-B">Set Loop End</button>
         <button class="btn small" id="loopToggle-B">🔁 Loop Off</button>
+        <button class="btn small" data-quickloop="4" data-deck="B">🔂 4 beats</button>
+        <button class="btn small" data-quickloop="8" data-deck="B">🔂 8 beats</button>
+        <button class="btn small" data-quickloop="16" data-deck="B">🔂 16 beats</button>
+      </div>
+      <div class="fx-section">
+        <div class="fx-title">FX</div>
+        <div class="slider-row">
+          <span class="lbl">Filter</span>
+          <input type="range" id="filter-B" min="-100" max="100" value="0">
+          <b id="filterLabel-B">Off</b>
+        </div>
+        <div class="slider-row">
+          <span class="lbl">Echo</span>
+          <input type="range" id="echo-B" min="0" max="100" value="0">
+          <b id="echoLabel-B">Off</b>
+        </div>
+        <div class="slider-row">
+          <span class="lbl">Reverb</span>
+          <input type="range" id="reverb-B" min="0" max="100" value="0">
+          <b id="reverbLabel-B">Off</b>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="crossfader-card" id="previewCard">
-    <h3>🎧 Preview / Cue</h3>
+    <h3>🎧 Audio Routing</h3>
+    <div class="cf-row" style="margin-bottom:8px">
+      <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Decks (mix):</span>
+      <select id="mainDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
+        <option value="">Default output</option>
+      </select>
+    </div>
     <div class="cf-row" style="margin-bottom:10px">
-      <span style="font-size:0.78rem;color:var(--ink-soft)">Output:</span>
+      <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Preview:</span>
       <select id="previewDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
-        <option value="">Default (same as decks)</option>
+        <option value="">Default output</option>
       </select>
       <button class="btn small" id="unlockDevicesBtn">Show my devices</button>
     </div>
+    <div id="routingNote" style="font-size:0.7rem;color:var(--ink-soft);margin-bottom:12px;text-align:left"></div>
     <div class="now-playing" id="previewNowPlaying" style="text-align:left">Tap 🎧 next to any track in a deck's list to preview it here</div>
     <div class="seek-row">
       <span class="time-lbl" id="previewCurTime">0:00</span>
@@ -198,7 +319,6 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
       <button class="btn accent" id="previewPlayBtn">▶ Play</button>
       <button class="btn small" id="previewStopBtn">⏹ Stop</button>
     </div>
-    <div id="previewDeviceNote" style="font-size:0.7rem;color:var(--ink-soft);margin-top:8px;text-align:left"></div>
     <audio id="previewAudio" style="display:none"></audio>
   </div>
 
@@ -210,9 +330,19 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
       <span class="b">B</span>
     </div>
     <div class="tempo-match-row">
-      <button class="btn" id="matchTempoBtn">🎯 Match Deck B's speed to Deck A's tapped tempo</button>
-      <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:6px">Tap tempo on both decks first — this nudges B's speed so its beat matches A's, based on your taps (not real audio analysis, so fine-tune by ear).</div>
+      <button class="btn" id="matchTempoBtn">🔄 Sync Deck B to Deck A</button>
+      <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:6px" id="syncHint">BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.</div>
     </div>
+  </div>
+
+  <div class="crossfader-card">
+    <h3>⏺ Record the Mix</h3>
+    <div style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:10px">Captures both decks, the crossfader position and all FX exactly as you hear them, and gives you a file to download when you stop.</div>
+    <div class="deck-controls" style="justify-content:center">
+      <button class="btn accent" id="recordBtn">⏺ Start Recording</button>
+      <span class="btn small" id="recordStatus" style="cursor:default">Not recording</span>
+    </div>
+    <div id="recordDownload" style="margin-top:10px"></div>
   </div>
 
   <div class="footer-note">Everything stays on this device — nothing is ever uploaded anywhere. Free to use, no account needed.</div>
@@ -259,14 +389,32 @@ async function deleteTrack(deck, id){
   });
 }
 
-// ---------- Web Audio graph: audio element -> lowshelf -> highshelf -> deck gain -> master ----------
+// ---------- Web Audio graph: audio element -> EQ -> filter sweep -> [dry + echo + reverb] -> deck gain -> master ----------
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const masterGain = audioCtx.createGain();
 masterGain.gain.value = 1;
 masterGain.connect(audioCtx.destination);
 
+// Also tap the master bus to a MediaStreamDestination so the exact mix (both decks, crossfader, FX) can be recorded.
+const mediaStreamDest = audioCtx.createMediaStreamDestination();
+masterGain.connect(mediaStreamDest);
+
+// One shared synthetic impulse response (exponentially-decaying noise) powers both decks' reverb - no external IR file needed.
+function makeImpulseResponse(duration, decay){
+  const rate = audioCtx.sampleRate;
+  const length = Math.floor(rate * duration);
+  const impulse = audioCtx.createBuffer(2, length, rate);
+  for(let ch = 0; ch < 2; ch++){
+    const data = impulse.getChannelData(ch);
+    for(let i = 0; i < length; i++){
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+  }
+  return impulse;
+}
+const sharedImpulseResponse = makeImpulseResponse(2.5, 3);
+
 function makeDeck(deck){
-  const audioEl = document.getElementById('nowPlaying-' + deck); // placeholder, real audio el created below
   const audio = new Audio();
   audio.crossOrigin = 'anonymous';
   const source = audioCtx.createMediaElementSource(audio);
@@ -274,14 +422,37 @@ function makeDeck(deck){
   bassFilter.type = 'lowshelf'; bassFilter.frequency.value = 200; bassFilter.gain.value = 0;
   const trebleFilter = audioCtx.createBiquadFilter();
   trebleFilter.type = 'highshelf'; trebleFilter.frequency.value = 3000; trebleFilter.gain.value = 0;
+  const filterNode = audioCtx.createBiquadFilter();
+  filterNode.type = 'allpass'; filterNode.frequency.value = 1000; // "off" position of the filter sweep knob
+
+  const delayNode = audioCtx.createDelay(1.0); delayNode.delayTime.value = 0.28;
+  const delayFeedback = audioCtx.createGain(); delayFeedback.gain.value = 0.35;
+  const delayWet = audioCtx.createGain(); delayWet.gain.value = 0;
+
+  const convolver = audioCtx.createConvolver();
+  convolver.buffer = sharedImpulseResponse;
+  const reverbWet = audioCtx.createGain(); reverbWet.gain.value = 0;
+
   const gainNode = audioCtx.createGain();
   gainNode.gain.value = deck === 'A' ? 1 : 0; // crossfader starts centered at 50, set properly below
-  source.connect(bassFilter); bassFilter.connect(trebleFilter); trebleFilter.connect(gainNode); gainNode.connect(masterGain);
+
+  source.connect(bassFilter);
+  bassFilter.connect(trebleFilter);
+  trebleFilter.connect(filterNode);
+  filterNode.connect(gainNode); // dry path
+  filterNode.connect(delayNode);
+  delayNode.connect(delayFeedback); delayFeedback.connect(delayNode); // feedback loop
+  delayNode.connect(delayWet); delayWet.connect(gainNode);
+  filterNode.connect(convolver);
+  convolver.connect(reverbWet); reverbWet.connect(gainNode);
+  gainNode.connect(masterGain);
+
   return {
-    deck, audio, bassFilter, trebleFilter, gainNode,
+    deck, audio, bassFilter, trebleFilter, filterNode, delayNode, delayFeedback, delayWet, convolver, reverbWet, gainNode,
     currentTrackId: null, currentUrl: null,
     loopStart: null, loopEnd: null, loopOn: false,
-    tapTimes: [], bpm: null
+    tapTimes: [], bpm: null, bpmAuto: false,
+    cues: [null, null, null, null], waveformPeaks: null
   };
 }
 
@@ -291,6 +462,91 @@ function fmtTime(sec){
   if(!isFinite(sec)) return '0:00';
   const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
   return m + ':' + String(s).padStart(2, '0');
+}
+
+// ---------- Waveform: downsample the decoded buffer into fixed buckets (max abs amplitude per bucket) ----------
+function computeWaveformPeaks(buffer, buckets){
+  buckets = buckets || 600;
+  const channels = [];
+  for(let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
+  const len = buffer.length;
+  const bucketSize = Math.max(1, Math.floor(len / buckets));
+  const peaks = new Float32Array(buckets);
+  for(let b = 0; b < buckets; b++){
+    const start = b * bucketSize;
+    const end = Math.min(len, start + bucketSize);
+    let max = 0;
+    for(let i = start; i < end; i++){
+      let sample = 0;
+      for(let c = 0; c < channels.length; c++) sample += Math.abs(channels[c][i]);
+      sample /= channels.length;
+      if(sample > max) max = sample;
+    }
+    peaks[b] = max;
+  }
+  return peaks;
+}
+
+// ---------- Auto BPM: lowpass-filter to isolate the kick/bass, peak-pick the energy envelope, then
+// histogram the intervals between peaks (folded into a sane 70-180 BPM range) and take the most common one. ----------
+async function detectBPM(buffer){
+  try{
+    const offlineCtx = new OfflineAudioContext(1, buffer.length, buffer.sampleRate);
+    const src = offlineCtx.createBufferSource();
+    src.buffer = buffer;
+    const lowpass = offlineCtx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 150;
+    src.connect(lowpass);
+    lowpass.connect(offlineCtx.destination);
+    src.start(0);
+    const rendered = await offlineCtx.startRendering();
+    const data = rendered.getChannelData(0);
+    const sampleRate = rendered.sampleRate;
+
+    const blocksPerSec = 100;
+    const blockSize = Math.floor(sampleRate / blocksPerSec);
+    const numBlocks = Math.floor(data.length / blockSize);
+    const energy = new Float32Array(numBlocks);
+    for(let i = 0; i < numBlocks; i++){
+      let sum = 0;
+      const start = i * blockSize;
+      for(let j = 0; j < blockSize; j++){ const s = data[start + j]; sum += s * s; }
+      energy[i] = Math.sqrt(sum / blockSize);
+    }
+
+    let mean = 0; for(let i = 0; i < energy.length; i++) mean += energy[i]; mean /= energy.length;
+    let variance = 0; for(let i = 0; i < energy.length; i++) variance += (energy[i] - mean) ** 2; variance /= energy.length;
+    const threshold = mean + Math.sqrt(variance) * 0.6;
+    const minSpacing = Math.round(blocksPerSec * 0.25); // caps detection at 240 BPM
+
+    const peaks = [];
+    let lastPeak = -minSpacing;
+    for(let i = 1; i < energy.length - 1; i++){
+      if(energy[i] > threshold && energy[i] >= energy[i - 1] && energy[i] >= energy[i + 1] && (i - lastPeak) >= minSpacing){
+        peaks.push(i);
+        lastPeak = i;
+      }
+    }
+    if(peaks.length < 4) return null;
+
+    const bpmCounts = {};
+    for(let i = 1; i < peaks.length; i++){
+      const intervalBlocks = peaks[i] - peaks[i - 1];
+      let bpm = 60 / (intervalBlocks / blocksPerSec);
+      while(bpm < 70) bpm *= 2;
+      while(bpm > 180) bpm /= 2;
+      const rounded = Math.round(bpm);
+      bpmCounts[rounded] = (bpmCounts[rounded] || 0) + 1;
+    }
+    let bestBpm = null, bestCount = 0;
+    for(const key in bpmCounts){
+      if(bpmCounts[key] > bestCount){ bestCount = bpmCounts[key]; bestBpm = Number(key); }
+    }
+    return bestBpm;
+  }catch(err){
+    return null;
+  }
 }
 
 async function renderTrackList(deck){
@@ -355,7 +611,167 @@ function loadTrack(deck, track){
   d.loopStart = null; d.loopEnd = null; d.loopOn = false;
   document.getElementById('loopLabel-' + deck).textContent = 'No loop section set';
   document.getElementById('loopToggle-' + deck).textContent = '🔁 Loop Off';
+  d.cues = [null, null, null, null];
+  renderCues(deck);
+  d.waveformPeaks = null;
+  d.bpm = null; d.bpmAuto = false;
+  document.getElementById('bpmLabel-' + deck).textContent = 'Analyzing…';
   renderTrackList(deck);
+
+  const loadId = track.id;
+  track.blob.arrayBuffer()
+    .then(arr => audioCtx.decodeAudioData(arr))
+    .then(buffer => {
+      if(d.currentTrackId !== loadId) return;
+      d.waveformPeaks = computeWaveformPeaks(buffer);
+      return detectBPM(buffer).then(bpm => {
+        if(d.currentTrackId !== loadId) return;
+        if(bpm){
+          d.bpm = bpm; d.bpmAuto = true;
+          document.getElementById('bpmLabel-' + deck).textContent = bpm + ' BPM (auto)';
+        } else {
+          document.getElementById('bpmLabel-' + deck).textContent = '-- BPM (tap to set)';
+        }
+      });
+    })
+    .catch(() => {
+      document.getElementById('bpmLabel-' + deck).textContent = '-- BPM (tap to set)';
+    });
+}
+
+// ---------- Waveform rendering: continuously redrawn so the playhead, loop region and cue markers stay live ----------
+function drawWaveform(deck){
+  const d = decks[deck];
+  const canvas = document.getElementById('waveform-' + deck);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 300, h = canvas.clientHeight || 64;
+  if(canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)){
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const style = getComputedStyle(document.documentElement);
+
+  if(!d.waveformPeaks){
+    ctx.fillStyle = style.getPropertyValue('--ink-soft').trim();
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.currentTrackId ? 'Analyzing waveform…' : 'No track loaded', w / 2, h / 2 + 4);
+    return;
+  }
+
+  const duration = d.audio.duration;
+  if(d.loopStart != null && d.loopEnd != null && duration){
+    const x1 = (d.loopStart / duration) * w, x2 = (d.loopEnd / duration) * w;
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.fillRect(x1, 0, x2 - x1, h);
+  }
+
+  const peaks = d.waveformPeaks;
+  const mid = h / 2;
+  const barW = w / peaks.length;
+  ctx.fillStyle = style.getPropertyValue(deck === 'A' ? '--accentA' : '--accentB').trim();
+  for(let i = 0; i < peaks.length; i++){
+    const amp = peaks[i] * (mid - 2);
+    ctx.fillRect(i * barW, mid - amp, Math.max(1, barW * 0.8), amp * 2);
+  }
+
+  if(duration){
+    d.cues.forEach(cue => {
+      if(cue == null) return;
+      const x = (cue / duration) * w;
+      ctx.fillStyle = '#FFD54A';
+      ctx.fillRect(x - 1, 0, 2, h);
+    });
+    const playX = (d.audio.currentTime / duration) * w;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(playX - 1, 0, 2, h);
+  }
+}
+
+(function waveformLoop(){
+  drawWaveform('A'); drawWaveform('B');
+  requestAnimationFrame(waveformLoop);
+})();
+
+['A', 'B'].forEach(deck => {
+  document.getElementById('waveform-' + deck).addEventListener('click', (e) => {
+    const d = decks[deck];
+    if(!d.audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    d.audio.currentTime = frac * d.audio.duration;
+  });
+});
+
+// ---------- Hot cues: 4 per deck, first tap sets, second tap jumps; reset whenever a new track loads ----------
+function renderCues(deck){
+  const d = decks[deck];
+  document.querySelectorAll(`.cue-btn[data-deck="${deck}"]`).forEach(btn => {
+    const idx = Number(btn.dataset.cue);
+    const set = d.cues[idx] != null;
+    btn.classList.toggle('set', set);
+    btn.textContent = set ? ('Cue ' + (idx + 1) + ' · ' + fmtTime(d.cues[idx])) : ('Cue ' + (idx + 1));
+  });
+}
+document.querySelectorAll('.cue-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const deck = btn.dataset.deck;
+    const idx = Number(btn.dataset.cue);
+    const d = decks[deck];
+    if(!d.currentTrackId) return;
+    if(d.cues[idx] == null){
+      d.cues[idx] = d.audio.currentTime;
+    } else {
+      d.audio.currentTime = d.cues[idx];
+      if(d.audio.paused) d.audio.play();
+    }
+    renderCues(deck);
+  });
+});
+['A', 'B'].forEach(deck => {
+  document.getElementById('cueClear-' + deck).addEventListener('click', () => {
+    decks[deck].cues = [null, null, null, null];
+    renderCues(deck);
+  });
+});
+
+// ---------- Quick auto-loops: uses the deck's known BPM (auto-detected or tapped) to size the loop in beats ----------
+document.querySelectorAll('[data-quickloop]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const deck = btn.dataset.deck;
+    const beats = Number(btn.dataset.quickloop);
+    const d = decks[deck];
+    if(!d.bpm){ alert('No BPM yet for Deck ' + deck + ' — load a track and wait a moment for auto-detection, or tap tempo manually.'); return; }
+    const beatSec = 60 / d.bpm;
+    d.loopStart = d.audio.currentTime;
+    d.loopEnd = d.loopStart + beatSec * beats;
+    d.loopOn = true;
+    document.getElementById('loopToggle-' + deck).textContent = '🔁 Loop On';
+    updateLoopLabel(deck);
+  });
+});
+
+// ---------- Filter sweep: centre = off, negative = lowpass closing down, positive = highpass opening up ----------
+function applyFilter(deck, val){
+  const d = decks[deck];
+  const label = document.getElementById('filterLabel-' + deck);
+  if(val === 0){
+    d.filterNode.type = 'allpass';
+    d.filterNode.frequency.value = 1000;
+    label.textContent = 'Off';
+  } else if(val < 0){
+    d.filterNode.type = 'lowpass';
+    const t = (100 + val) / 100; // val=-100 -> 0 (most cut), val=0 -> 1
+    d.filterNode.frequency.value = 200 + t * 19800;
+    label.textContent = 'LP ' + Math.abs(val) + '%';
+  } else {
+    d.filterNode.type = 'highpass';
+    const t = val / 100;
+    d.filterNode.frequency.value = 20 + t * 4000;
+    label.textContent = 'HP ' + val + '%';
+  }
 }
 
 ['A', 'B'].forEach(deck => {
@@ -411,6 +827,17 @@ function loadTrack(deck, track){
     d.trebleFilter.gain.value = v;
     document.getElementById('trebleLabel-' + deck).textContent = (v > 0 ? '+' : '') + v + 'dB';
   });
+  document.getElementById('filter-' + deck).addEventListener('input', (e) => applyFilter(deck, Number(e.target.value)));
+  document.getElementById('echo-' + deck).addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    d.delayWet.gain.value = (v / 100) * 0.5;
+    document.getElementById('echoLabel-' + deck).textContent = v === 0 ? 'Off' : v + '%';
+  });
+  document.getElementById('reverb-' + deck).addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    d.reverbWet.gain.value = (v / 100) * 0.6;
+    document.getElementById('reverbLabel-' + deck).textContent = v === 0 ? 'Off' : v + '%';
+  });
 
   document.getElementById('loopStart-' + deck).addEventListener('click', () => {
     d.loopStart = d.audio.currentTime;
@@ -436,6 +863,7 @@ function loadTrack(deck, track){
       const avgMs = intervals.reduce((a,b) => a+b, 0) / intervals.length;
       if(avgMs > 150 && avgMs < 3000){
         d.bpm = Math.round(60000 / avgMs);
+        d.bpmAuto = false;
         document.getElementById('bpmLabel-' + deck).textContent = d.bpm + ' BPM';
       }
     }
@@ -490,29 +918,38 @@ document.getElementById('previewStopBtn').addEventListener('click', () => {
   previewAudio.currentTime = 0;
 });
 
+// ---------- Output device routing: decks and preview can each be pinned to a specific device, so
+// plugging in headphones (which usually becomes the new *system default*) doesn't pull the decks along too. ----------
+const mainDeviceSelect = document.getElementById('mainDeviceSelect');
 const previewDeviceSelect = document.getElementById('previewDeviceSelect');
-const previewDeviceNote = document.getElementById('previewDeviceNote');
+const routingNote = document.getElementById('routingNote');
 
 async function populateOutputDevices(){
-  if(!previewAudio.setSinkId){
-    previewDeviceNote.textContent = "Your browser doesn't support choosing a specific output device - preview plays through the same output as the decks.";
-    previewDeviceSelect.disabled = true;
+  const mainSupported = typeof audioCtx.setSinkId === 'function';
+  const previewSupported = typeof previewAudio.setSinkId === 'function';
+  if(!mainSupported && !previewSupported){
+    routingNote.textContent = "This browser doesn't support choosing specific output devices — decks and preview both follow your system's default output.";
+    mainDeviceSelect.disabled = true; previewDeviceSelect.disabled = true;
     document.getElementById('unlockDevicesBtn').style.display = 'none';
     return;
   }
   try{
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const outputs = devices.filter(d => d.kind === 'audiooutput');
-    const labelled = outputs.filter(d => d.label);
-    previewDeviceSelect.innerHTML = '<option value="">Default (same as decks)</option>' +
-      outputs.map(d => `<option value="${d.deviceId}">${escapeHtml(d.label || 'Output device')}</option>`).join('');
+    const outputs = devices.filter(dv => dv.kind === 'audiooutput');
+    const labelled = outputs.filter(dv => dv.label);
+    const optionsHtml = '<option value="">Default output</option>' +
+      outputs.map(dv => `<option value="${dv.deviceId}">${escapeHtml(dv.label || 'Output device')}</option>`).join('');
+    if(mainSupported){ mainDeviceSelect.innerHTML = optionsHtml; } else { mainDeviceSelect.disabled = true; }
+    if(previewSupported){ previewDeviceSelect.innerHTML = optionsHtml; } else { previewDeviceSelect.disabled = true; }
     if(!labelled.length){
-      previewDeviceNote.textContent = 'Device names are hidden until you allow access below - tap "Show my devices" to see them (e.g. your headphones by name), so you can send previews there instead of the main speakers.';
+      routingNote.textContent = 'Device names are hidden until you allow access — tap "Show my devices", then pick Speakers for Decks and Headphones for Preview (or vice versa).';
+    } else if(!mainSupported){
+      routingNote.textContent = "This browser can route the preview to a chosen device, but can't pin the decks — if the decks follow your headphones, that's your system's default output, not this app.";
     } else {
-      previewDeviceNote.textContent = 'Pick your headphones here to preview privately while the decks keep playing on the main output.';
+      routingNote.textContent = "Decks and preview each stay on whichever device you pick — independent of your system default, so plugging headphones in won't pull the decks along.";
     }
   }catch(err){
-    previewDeviceNote.textContent = "Couldn't list audio output devices.";
+    routingNote.textContent = "Couldn't list audio output devices.";
   }
 }
 
@@ -522,14 +959,20 @@ document.getElementById('unlockDevicesBtn').addEventListener('click', async () =
     stream.getTracks().forEach(t => t.stop());
     await populateOutputDevices();
   }catch(err){
-    previewDeviceNote.textContent = "Permission needed to show device names by their real names - you can still pick from the unnamed list, or just use the default output.";
+    routingNote.textContent = "Permission needed to show device names by their real names - you can still pick from the unnamed list, or just use the default output.";
   }
 });
 
+mainDeviceSelect.addEventListener('change', async (e) => {
+  if(typeof audioCtx.setSinkId === 'function'){
+    try{ await audioCtx.setSinkId(e.target.value); }
+    catch(err){ routingNote.textContent = "Couldn't switch the decks to that device."; }
+  }
+});
 previewDeviceSelect.addEventListener('change', async (e) => {
   if(previewAudio.setSinkId){
     try{ await previewAudio.setSinkId(e.target.value); }
-    catch(err){ previewDeviceNote.textContent = "Couldn't switch to that device."; }
+    catch(err){ routingNote.textContent = "Couldn't switch the preview to that device."; }
   }
 });
 
@@ -545,9 +988,11 @@ function applyCrossfader(){
 crossfaderEl.addEventListener('input', applyCrossfader);
 applyCrossfader();
 
+// ---------- Sync: matches Deck B's speed to Deck A's BPM (auto-detected or tapped), then nudges
+// B's beat phase to line up with A's, using A's beat length as the shared grid. ----------
 document.getElementById('matchTempoBtn').addEventListener('click', () => {
   if(!decks.A.bpm || !decks.B.bpm){
-    alert('Tap tempo on both Deck A and Deck B at least 4 times each first.');
+    alert('BPM not known yet for one or both decks — load tracks and give auto-detection a moment, or tap tempo manually.');
     return;
   }
   const ratio = decks.A.bpm / decks.B.bpm;
@@ -558,6 +1003,42 @@ document.getElementById('matchTempoBtn').addEventListener('click', () => {
   decks.B.audio.playbackRate = newPct / 100;
   decks.B.audio.preservesPitch = true; decks.B.audio.mozPreservesPitch = true; decks.B.audio.webkitPreservesPitch = true;
   document.getElementById('speedLabel-B').textContent = newPct + '%';
+
+  const beatSec = 60 / decks.A.bpm;
+  const phaseA = decks.A.audio.currentTime % beatSec;
+  const phaseB = decks.B.audio.currentTime % beatSec;
+  let diff = phaseA - phaseB;
+  if(diff > beatSec / 2) diff -= beatSec;
+  if(diff < -beatSec / 2) diff += beatSec;
+  const newTime = decks.B.audio.currentTime + diff;
+  if(newTime >= 0 && newTime <= (decks.B.audio.duration || Infinity)) decks.B.audio.currentTime = newTime;
+});
+
+// ---------- Record the mix: taps the exact master bus (both decks, crossfader, all FX) via MediaStreamDestination ----------
+let mediaRecorder = null;
+let recordedChunks = [];
+document.getElementById('recordBtn').addEventListener('click', async () => {
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+    return;
+  }
+  if(audioCtx.state === 'suspended') await audioCtx.resume();
+  recordedChunks = [];
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+  mediaRecorder = new MediaRecorder(mediaStreamDest.stream, { mimeType });
+  mediaRecorder.ondataavailable = (e) => { if(e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    document.getElementById('recordDownload').innerHTML =
+      `<a class="btn accent" href="${url}" download="mix-${ts}.webm">⬇ Download mix-${ts}.webm</a>`;
+    document.getElementById('recordBtn').textContent = '⏺ Start Recording';
+    document.getElementById('recordStatus').textContent = 'Not recording';
+  };
+  mediaRecorder.start();
+  document.getElementById('recordBtn').textContent = '⏹ Stop Recording';
+  document.getElementById('recordStatus').textContent = '🔴 Recording…';
 });
 
 if ("serviceWorker" in navigator) {
