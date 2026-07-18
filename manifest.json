@@ -1,0 +1,15 @@
+{
+  "id": "/mixing-decks/",
+  "name": "Mixing Decks",
+  "short_name": "Decks",
+  "start_url": "/mixing-decks/index.html",
+  "scope": "/mixing-decks/",
+  "display": "standalone",
+  "background_color": "#141418",
+  "theme_color": "#141418",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

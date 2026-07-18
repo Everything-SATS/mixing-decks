@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mixing Decks</title>
+<meta name="theme-color" content="#141418">
+<meta name="description" content="A free two-deck DJ mixer in your browser. Upload your own tracks, crossfade between decks, adjust speed and EQ, tap tempo. Nothing is ever uploaded anywhere.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Decks">
+<style>
+:root{
+  --bg:#141418; --surface:#1E1E24; --surface-2:#25252D; --ink:#F2F1EE; --ink-soft:#9C9CA6;
+  --line:#33333D; --accentA:#E8543E; --accentB:#3D7BD9; --good:#4CAF50; --shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+:root[data-theme="light"]{
+  --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F0F0F3; --ink:#17181C; --ink-soft:#6B6D76;
+  --line:#E2E2E8; --accentA:#E8543E; --accentB:#3D7BD9; --good:#2E9E6C; --shadow:0 8px 24px rgba(20,20,30,0.08);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F0F0F3; --ink:#17181C; --ink-soft:#6B6D76;
+    --line:#E2E2E8; --accentA:#E8543E; --accentB:#3D7BD9; --good:#2E9E6C; --shadow:0 8px 24px rgba(20,20,30,0.08);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 18px 14px 60px; }
+header { text-align: center; margin-bottom: 16px; }
+header .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+header h1 { font-size: clamp(1.5rem, 5vw, 2rem); margin: 6px 0; font-weight: 900; }
+header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin: 0 auto; line-height: 1.5; }
+
+.decks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+@media (max-width: 620px) { .decks-grid { grid-template-columns: 1fr; } }
+
+.deck { background: var(--surface); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); border-top: 4px solid var(--deck-accent); }
+.deck.deckA { --deck-accent: var(--accentA); }
+.deck.deckB { --deck-accent: var(--accentB); }
+.deck h2 { margin: 0 0 10px; font-size: 1.05rem; color: var(--deck-accent); }
+.deck input[type="file"] { display: none; }
+.deck-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.btn { background: var(--surface-2); color: var(--ink); border: 1.5px solid var(--line); padding: 8px 12px;
+  border-radius: 10px; font-weight: 700; font-size: 0.82rem; cursor: pointer; font-family: inherit; }
+.btn.accent { background: var(--deck-accent); border-color: var(--deck-accent); color: #fff; }
+.btn.small { padding: 6px 9px; font-size: 0.74rem; }
+.track-list { max-height: 130px; overflow-y: auto; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.track-item { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 7px 10px;
+  font-size: 0.78rem; border-bottom: 1px solid var(--line); cursor: pointer; }
+.track-item:last-child { border-bottom: none; }
+.track-item:hover { background: var(--surface-2); }
+.track-item.active { background: var(--deck-accent); color: #fff; }
+.track-item .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track-item .tdel { opacity: 0.7; cursor: pointer; padding: 2px 4px; }
+.empty-note { padding: 10px; font-size: 0.76rem; color: var(--ink-soft); font-style: italic; text-align: center; }
+
+.now-playing { font-weight: 800; font-size: 0.9rem; margin-bottom: 8px; word-break: break-word; min-height: 1.2em; }
+.seek-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.seek-row input[type="range"] { flex: 1; }
+.time-lbl { font-size: 0.7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.78rem; }
+.slider-row span.lbl { width: 46px; flex-shrink: 0; color: var(--ink-soft); }
+.slider-row input[type="range"] { flex: 1; }
+.slider-row b { width: 44px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+.loop-row, .eq-row, .tempo-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.loop-label { font-size: 0.72rem; color: var(--ink-soft); flex-basis: 100%; }
+
+.crossfader-card { background: var(--surface); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); text-align: center; }
+.crossfader-card h3 { margin: 0 0 10px; font-size: 0.9rem; }
+.cf-row { display: flex; align-items: center; gap: 10px; }
+.cf-row span { font-weight: 800; font-size: 0.85rem; }
+.cf-row span.a { color: var(--accentA); }
+.cf-row span.b { color: var(--accentB); }
+.cf-row input[type="range"] { flex: 1; height: 10px; }
+.tempo-match-row { margin-top: 12px; }
+
+.footer-note { text-align: center; color: var(--ink-soft); font-size: 0.76rem; margin-top: 30px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Free · No Account · Your Own Tracks</div>
+    <h1>🎚️ Mixing Decks</h1>
+    <p>A two-deck mixer that runs entirely in your browser. Add your own tracks (or a video's sound), crossfade between decks, adjust speed and tone, tap tempo. Nothing is ever uploaded anywhere.</p>
+  </header>
+
+  <div class="decks-grid">
+    <div class="deck deckA" id="deck-A">
+      <h2>Deck A</h2>
+      <input type="file" id="fileInput-A" accept="audio/*,video/*">
+      <div class="deck-controls">
+        <button class="btn accent" data-action="add" data-deck="A">➕ Add Track</button>
+      </div>
+      <div class="track-list" id="trackList-A"></div>
+      <div class="now-playing" id="nowPlaying-A">No track loaded</div>
+      <div class="seek-row">
+        <span class="time-lbl" id="curTime-A">0:00</span>
+        <input type="range" id="seek-A" min="0" max="100" value="0" step="0.1">
+        <span class="time-lbl" id="durTime-A">0:00</span>
+      </div>
+      <div class="deck-controls">
+        <button class="btn accent" id="playBtn-A">▶ Play</button>
+        <button class="btn small" id="tapBtn-A">👆 Tap Tempo</button>
+        <span class="btn small" id="bpmLabel-A" style="cursor:default">-- BPM</span>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Speed</span>
+        <input type="range" id="speed-A" min="50" max="150" value="100">
+        <b id="speedLabel-A">100%</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Bass</span>
+        <input type="range" id="bass-A" min="-20" max="20" value="0">
+        <b id="bassLabel-A">0dB</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Treble</span>
+        <input type="range" id="treble-A" min="-20" max="20" value="0">
+        <b id="trebleLabel-A">0dB</b>
+      </div>
+      <div class="loop-row">
+        <div class="loop-label" id="loopLabel-A">No loop section set</div>
+        <button class="btn small" id="loopStart-A">Set Loop Start</button>
+        <button class="btn small" id="loopEnd-A">Set Loop End</button>
+        <button class="btn small" id="loopToggle-A">🔁 Loop Off</button>
+      </div>
+    </div>
+
+    <div class="deck deckB" id="deck-B">
+      <h2>Deck B</h2>
+      <input type="file" id="fileInput-B" accept="audio/*,video/*">
+      <div class="deck-controls">
+        <button class="btn accent" data-action="add" data-deck="B">➕ Add Track</button>
+      </div>
+      <div class="track-list" id="trackList-B"></div>
+      <div class="now-playing" id="nowPlaying-B">No track loaded</div>
+      <div class="seek-row">
+        <span class="time-lbl" id="curTime-B">0:00</span>
+        <input type="range" id="seek-B" min="0" max="100" value="0" step="0.1">
+        <span class="time-lbl" id="durTime-B">0:00</span>
+      </div>
+      <div class="deck-controls">
+        <button class="btn accent" id="playBtn-B">▶ Play</button>
+        <button class="btn small" id="tapBtn-B">👆 Tap Tempo</button>
+        <span class="btn small" id="bpmLabel-B" style="cursor:default">-- BPM</span>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Speed</span>
+        <input type="range" id="speed-B" min="50" max="150" value="100">
+        <b id="speedLabel-B">100%</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Bass</span>
+        <input type="range" id="bass-B" min="-20" max="20" value="0">
+        <b id="bassLabel-B">0dB</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Treble</span>
+        <input type="range" id="treble-B" min="-20" max="20" value="0">
+        <b id="trebleLabel-B">0dB</b>
+      </div>
+      <div class="loop-row">
+        <div class="loop-label" id="loopLabel-B">No loop section set</div>
+        <button class="btn small" id="loopStart-B">Set Loop Start</button>
+        <button class="btn small" id="loopEnd-B">Set Loop End</button>
+        <button class="btn small" id="loopToggle-B">🔁 Loop Off</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="crossfader-card">
+    <h3>Crossfader</h3>
+    <div class="cf-row">
+      <span class="a">A</span>
+      <input type="range" id="crossfader" min="0" max="100" value="50">
+      <span class="b">B</span>
+    </div>
+    <div class="tempo-match-row">
+      <button class="btn" id="matchTempoBtn">🎯 Match Deck B's speed to Deck A's tapped tempo</button>
+      <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:6px">Tap tempo on both decks first — this nudges B's speed so its beat matches A's, based on your taps (not real audio analysis, so fine-tune by ear).</div>
+    </div>
+  </div>
+
+  <div class="footer-note">Everything stays on this device — nothing is ever uploaded anywhere. Free to use, no account needed.</div>
+</div>
+
+<script>
+// ---------- Storage: separate track libraries per deck ----------
+function openDeckDb(deck){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('mixingDecksTracks' + deck, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains('tracks')) db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function addTrack(deck, name, blob){
+  const db = await openDeckDb(deck);
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tracks', 'readwrite');
+    const req = tx.objectStore('tracks').add({ name, blob, addedAt: Date.now() });
+    req.onsuccess = () => resolve(req.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getAllTracks(deck){
+  const db = await openDeckDb(deck);
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tracks', 'readonly');
+    const req = tx.objectStore('tracks').getAll();
+    req.onsuccess = () => resolve((req.result || []).sort((a,b) => b.addedAt - a.addedAt));
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deleteTrack(deck, id){
+  const db = await openDeckDb(deck);
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('tracks', 'readwrite');
+    tx.objectStore('tracks').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ---------- Web Audio graph: audio element -> lowshelf -> highshelf -> deck gain -> master ----------
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 1;
+masterGain.connect(audioCtx.destination);
+
+function makeDeck(deck){
+  const audioEl = document.getElementById('nowPlaying-' + deck); // placeholder, real audio el created below
+  const audio = new Audio();
+  audio.crossOrigin = 'anonymous';
+  const source = audioCtx.createMediaElementSource(audio);
+  const bassFilter = audioCtx.createBiquadFilter();
+  bassFilter.type = 'lowshelf'; bassFilter.frequency.value = 200; bassFilter.gain.value = 0;
+  const trebleFilter = audioCtx.createBiquadFilter();
+  trebleFilter.type = 'highshelf'; trebleFilter.frequency.value = 3000; trebleFilter.gain.value = 0;
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = deck === 'A' ? 1 : 0; // crossfader starts centered at 50, set properly below
+  source.connect(bassFilter); bassFilter.connect(trebleFilter); trebleFilter.connect(gainNode); gainNode.connect(masterGain);
+  return {
+    deck, audio, bassFilter, trebleFilter, gainNode,
+    currentTrackId: null, currentUrl: null,
+    loopStart: null, loopEnd: null, loopOn: false,
+    tapTimes: [], bpm: null
+  };
+}
+
+const decks = { A: makeDeck('A'), B: makeDeck('B') };
+
+function fmtTime(sec){
+  if(!isFinite(sec)) return '0:00';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+async function renderTrackList(deck){
+  const listEl = document.getElementById('trackList-' + deck);
+  const tracks = await getAllTracks(deck);
+  const d = decks[deck];
+  if(!tracks.length){
+    listEl.innerHTML = '<div class="empty-note">No tracks yet - tap "Add Track" above.</div>';
+    return;
+  }
+  listEl.innerHTML = tracks.map(t => `
+    <div class="track-item${t.id === d.currentTrackId ? ' active' : ''}" data-id="${t.id}">
+      <span class="tname">${t.id === d.currentTrackId ? '▶ ' : ''}${escapeHtml(t.name)}</span>
+      <span class="tdel" data-del="${t.id}">✕</span>
+    </div>`).join('');
+  listEl.querySelectorAll('.track-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      if(e.target.dataset.del) return;
+      const id = Number(item.dataset.id);
+      const t = tracks.find(x => x.id === id);
+      if(t) loadTrack(deck, t);
+    });
+  });
+  listEl.querySelectorAll('[data-del]').forEach(delBtn => {
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = Number(delBtn.dataset.del);
+      if(id === d.currentTrackId){
+        d.audio.pause(); d.audio.removeAttribute('src'); d.currentTrackId = null;
+        document.getElementById('nowPlaying-' + deck).textContent = 'No track loaded';
+      }
+      await deleteTrack(deck, id);
+      renderTrackList(deck);
+    });
+  });
+}
+
+function escapeHtml(str){
+  const el = document.createElement('div');
+  el.textContent = str;
+  return el.innerHTML;
+}
+
+function loadTrack(deck, track){
+  const d = decks[deck];
+  if(d.currentUrl) URL.revokeObjectURL(d.currentUrl);
+  d.currentUrl = URL.createObjectURL(track.blob);
+  d.currentTrackId = track.id;
+  d.audio.pause();
+  d.audio.src = d.currentUrl;
+  d.audio.play().catch(() => {});
+  document.getElementById('nowPlaying-' + deck).textContent = track.name;
+  d.loopStart = null; d.loopEnd = null; d.loopOn = false;
+  document.getElementById('loopLabel-' + deck).textContent = 'No loop section set';
+  document.getElementById('loopToggle-' + deck).textContent = '🔁 Loop Off';
+  renderTrackList(deck);
+}
+
+['A', 'B'].forEach(deck => {
+  const d = decks[deck];
+
+  document.querySelector(`.btn[data-action="add"][data-deck="${deck}"]`).addEventListener('click', () => {
+    document.getElementById('fileInput-' + deck).click();
+  });
+  document.getElementById('fileInput-' + deck).addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const id = await addTrack(deck, file.name, file);
+    const tracks = await getAllTracks(deck);
+    const t = tracks.find(x => x.id === id);
+    if(t) loadTrack(deck, t);
+    e.target.value = '';
+  });
+
+  d.audio.addEventListener('loadedmetadata', () => {
+    document.getElementById('seek-' + deck).max = d.audio.duration;
+    document.getElementById('durTime-' + deck).textContent = fmtTime(d.audio.duration);
+  });
+  d.audio.addEventListener('timeupdate', () => {
+    document.getElementById('seek-' + deck).value = d.audio.currentTime;
+    document.getElementById('curTime-' + deck).textContent = fmtTime(d.audio.currentTime);
+    if(d.loopOn && d.loopEnd != null && d.audio.currentTime >= d.loopEnd){
+      d.audio.currentTime = d.loopStart || 0;
+    }
+  });
+  d.audio.addEventListener('play', () => { document.getElementById('playBtn-' + deck).textContent = '⏸ Pause'; if(audioCtx.state === 'suspended') audioCtx.resume(); });
+  d.audio.addEventListener('pause', () => { document.getElementById('playBtn-' + deck).textContent = '▶ Play'; });
+  d.audio.addEventListener('ended', () => { document.getElementById('playBtn-' + deck).textContent = '▶ Play'; });
+
+  document.getElementById('seek-' + deck).addEventListener('input', (e) => { d.audio.currentTime = Number(e.target.value); });
+  document.getElementById('playBtn-' + deck).addEventListener('click', () => {
+    if(!d.currentTrackId) return;
+    if(d.audio.paused) d.audio.play(); else d.audio.pause();
+  });
+
+  document.getElementById('speed-' + deck).addEventListener('input', (e) => {
+    const pct = Number(e.target.value);
+    d.audio.playbackRate = pct / 100;
+    d.audio.preservesPitch = true; d.audio.mozPreservesPitch = true; d.audio.webkitPreservesPitch = true;
+    document.getElementById('speedLabel-' + deck).textContent = pct + '%';
+  });
+  document.getElementById('bass-' + deck).addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    d.bassFilter.gain.value = v;
+    document.getElementById('bassLabel-' + deck).textContent = (v > 0 ? '+' : '') + v + 'dB';
+  });
+  document.getElementById('treble-' + deck).addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    d.trebleFilter.gain.value = v;
+    document.getElementById('trebleLabel-' + deck).textContent = (v > 0 ? '+' : '') + v + 'dB';
+  });
+
+  document.getElementById('loopStart-' + deck).addEventListener('click', () => {
+    d.loopStart = d.audio.currentTime;
+    updateLoopLabel(deck);
+  });
+  document.getElementById('loopEnd-' + deck).addEventListener('click', () => {
+    d.loopEnd = d.audio.currentTime;
+    updateLoopLabel(deck);
+  });
+  document.getElementById('loopToggle-' + deck).addEventListener('click', (e) => {
+    if(d.loopStart == null || d.loopEnd == null){ alert('Set a loop start and end point first.'); return; }
+    d.loopOn = !d.loopOn;
+    e.target.textContent = d.loopOn ? '🔁 Loop On' : '🔁 Loop Off';
+  });
+
+  document.getElementById('tapBtn-' + deck).addEventListener('click', () => {
+    const now = performance.now();
+    d.tapTimes.push(now);
+    if(d.tapTimes.length > 8) d.tapTimes.shift();
+    if(d.tapTimes.length >= 4){
+      const intervals = [];
+      for(let i = 1; i < d.tapTimes.length; i++) intervals.push(d.tapTimes[i] - d.tapTimes[i-1]);
+      const avgMs = intervals.reduce((a,b) => a+b, 0) / intervals.length;
+      if(avgMs > 150 && avgMs < 3000){
+        d.bpm = Math.round(60000 / avgMs);
+        document.getElementById('bpmLabel-' + deck).textContent = d.bpm + ' BPM';
+      }
+    }
+  });
+
+  renderTrackList(deck);
+});
+
+function updateLoopLabel(deck){
+  const d = decks[deck];
+  const label = document.getElementById('loopLabel-' + deck);
+  if(d.loopStart != null && d.loopEnd != null){
+    label.textContent = `Loop: ${fmtTime(d.loopStart)} – ${fmtTime(d.loopEnd)}`;
+  } else if(d.loopStart != null){
+    label.textContent = `Start set at ${fmtTime(d.loopStart)} — now set an end point`;
+  } else {
+    label.textContent = 'No loop section set';
+  }
+}
+
+// Equal-power crossfade for a smoother blend than plain linear.
+const crossfaderEl = document.getElementById('crossfader');
+function applyCrossfader(){
+  const pos = Number(crossfaderEl.value) / 100; // 0 = full A, 1 = full B
+  decks.A.gainNode.gain.value = Math.cos(pos * Math.PI / 2);
+  decks.B.gainNode.gain.value = Math.sin(pos * Math.PI / 2);
+}
+crossfaderEl.addEventListener('input', applyCrossfader);
+applyCrossfader();
+
+document.getElementById('matchTempoBtn').addEventListener('click', () => {
+  if(!decks.A.bpm || !decks.B.bpm){
+    alert('Tap tempo on both Deck A and Deck B at least 4 times each first.');
+    return;
+  }
+  const ratio = decks.A.bpm / decks.B.bpm;
+  const currentRate = decks.B.audio.playbackRate || 1;
+  let newPct = Math.round(currentRate * ratio * 100);
+  newPct = Math.max(50, Math.min(150, newPct));
+  document.getElementById('speed-B').value = newPct;
+  decks.B.audio.playbackRate = newPct / 100;
+  decks.B.audio.preservesPitch = true; decks.B.audio.mozPreservesPitch = true; decks.B.audio.webkitPreservesPitch = true;
+  document.getElementById('speedLabel-B').textContent = newPct + '%';
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js", { scope: "/mixing-decks/" }).catch(() => {});
+}
+</script>
+</body>
+</html>
