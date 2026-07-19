@@ -317,6 +317,7 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
     </div>
     <div class="deck-controls">
       <button class="btn accent" id="previewPlayBtn">▶ Play</button>
+      <button class="btn small" id="previewPauseBtn">⏸ Pause</button>
       <button class="btn small" id="previewStopBtn">⏹ Stop</button>
     </div>
     <audio id="previewAudio" style="display:none"></audio>
@@ -919,11 +920,18 @@ function clearPreview(){
   document.getElementById('previewSeek').value = 0;
   document.getElementById('previewCurTime').textContent = '0:00';
   document.getElementById('previewDurTime').textContent = '0:00';
-  document.getElementById('previewPlayBtn').textContent = '▶ Play';
+  document.getElementById('previewPlayBtn').classList.remove('accent');
+  document.getElementById('previewPauseBtn').classList.remove('accent');
 }
 
-previewAudio.addEventListener('play', () => { document.getElementById('previewPlayBtn').textContent = '⏸ Pause'; });
-previewAudio.addEventListener('pause', () => { document.getElementById('previewPlayBtn').textContent = '▶ Play'; });
+previewAudio.addEventListener('play', () => {
+  document.getElementById('previewPlayBtn').classList.add('accent');
+  document.getElementById('previewPauseBtn').classList.remove('accent');
+});
+previewAudio.addEventListener('pause', () => {
+  document.getElementById('previewPlayBtn').classList.remove('accent');
+  document.getElementById('previewPauseBtn').classList.add('accent');
+});
 previewAudio.addEventListener('loadedmetadata', () => {
   document.getElementById('previewSeek').max = previewAudio.duration;
   document.getElementById('previewDurTime').textContent = fmtTime(previewAudio.duration);
@@ -935,7 +943,11 @@ previewAudio.addEventListener('timeupdate', () => {
 document.getElementById('previewSeek').addEventListener('input', (e) => { previewAudio.currentTime = Number(e.target.value); });
 document.getElementById('previewPlayBtn').addEventListener('click', () => {
   if(!previewAudio.src) return;
-  if(previewAudio.paused) previewAudio.play(); else previewAudio.pause();
+  previewAudio.play();
+});
+document.getElementById('previewPauseBtn').addEventListener('click', () => {
+  if(!previewAudio.src) return;
+  previewAudio.pause();
 });
 document.getElementById('previewStopBtn').addEventListener('click', () => {
   previewAudio.pause();
