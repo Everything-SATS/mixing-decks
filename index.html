@@ -83,6 +83,14 @@ header p { color: var(--ink-soft); font-size: 0.72rem; max-width: 560px; margin:
 .knob-step:hover { color: var(--ink); border-color: var(--deck-accent, var(--ink-soft)); }
 .knob-step:active { background: var(--deck-accent, var(--surface-2)); color: #08080a; }
 
+/* ---------- Beat pulse: flashes on every detected beat so two decks' timing can be compared visually ---------- */
+.beat-pulse { width: 15px; height: 15px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line); flex-shrink: 0; }
+@keyframes beatPulseAnim {
+  0% { transform: scale(1.5); background: var(--deck-accent); border-color: var(--deck-accent); box-shadow: 0 0 14px 4px var(--deck-accent); }
+  100% { transform: scale(1); background: var(--surface-2); border-color: var(--line); box-shadow: none; }
+}
+.beat-pulse.hit { animation: beatPulseAnim 0.3s ease-out; }
+
 .deck {
   background: var(--surface); border-radius: 16px; padding: 14px;
   box-shadow: var(--shadow), 0 0 44px -20px var(--deck-accent);
@@ -234,6 +242,7 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
       <div class="deck-controls">
         <button class="btn accent" id="playBtn-A">▶ Play</button>
+        <div class="beat-pulse" id="beatPulse-A" title="Flashes on every beat"></div>
         <button class="btn small" id="tapBtn-A">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-A" style="cursor:default">-- BPM</span>
         <button class="btn small" id="autoPlayBtn-A" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
@@ -307,7 +316,7 @@ input[type="range"]::-webkit-slider-thumb {
         <input type="range" id="crossfader" min="0" max="100" value="50">
         <span class="b">B</span>
       </div>
-      <button class="btn small" id="matchTempoBtn" title="BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.">🔄 Sync</button>
+      <button class="btn small" id="matchTempoBtn" title="BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.">🎯 Auto Beat Match: OFF</button>
       <button class="btn small accent" id="recordBtn">⏺ Record</button>
       <span class="btn small" id="recordStatus" style="cursor:default;font-size:0.62rem">Not recording</span>
       <div id="recordDownload"></div>
@@ -329,6 +338,7 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
       <div class="deck-controls">
         <button class="btn accent" id="playBtn-B">▶ Play</button>
+        <div class="beat-pulse" id="beatPulse-B" title="Flashes on every beat"></div>
         <button class="btn small" id="tapBtn-B">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-B" style="cursor:default">-- BPM</span>
         <button class="btn small" id="autoPlayBtn-B" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
@@ -608,7 +618,7 @@ async function playNextTrack(deck){
   if(!tracks.length) return;
   const idx = tracks.findIndex(t => t.id === d.currentTrackId);
   const nextTrack = tracks[(idx + 1) % tracks.length];
-  loadTrack(deck, nextTrack);
+  loadTrack(deck, nextTrack, { autoplay: true });
 }
 
 const decks = { A: makeDeck('A'), B: makeDeck('B') };
@@ -765,15 +775,28 @@ function escapeHtml(str){
   return el.innerHTML;
 }
 
-function loadTrack(deck, track){
+let anyTrackLoaded = false;
+function loadTrack(deck, track, opts){
+  opts = opts || {};
   const d = decks[deck];
 
   // If this exact track is currently playing in Preview, hand off seamlessly instead of both
   // playing independently (which would sound doubled/out of sync) - same position, same play state.
   const handoff = (previewTrackId === track.id && previewTrackDeck === deck);
   const handoffTime = handoff ? previewAudio.currentTime : 0;
-  const handoffWasPlaying = handoff ? !previewAudio.paused : true;
+  // Loading a track (new upload or picking from the list) starts paused - you press Play yourself.
+  // The exceptions are a live handoff from Preview (keep whatever state it was in there) and
+  // Auto-Play advancing to the next track (opts.autoplay), which should keep playing seamlessly.
+  const handoffWasPlaying = handoff ? !previewAudio.paused : !!opts.autoplay;
   if(handoff) clearPreview();
+
+  // Whichever deck gets the very first track loaded should be immediately audible - snap the
+  // crossfader fully to that side rather than leaving it centered (silent-ish) or on the other deck.
+  if(!anyTrackLoaded){
+    anyTrackLoaded = true;
+    crossfaderEl.value = deck === 'A' ? 0 : 100;
+    crossfaderEl.dispatchEvent(new Event('input'));
+  }
 
   if(d.currentUrl) URL.revokeObjectURL(d.currentUrl);
   d.currentUrl = URL.createObjectURL(track.blob);
@@ -877,8 +900,24 @@ function drawWaveform(deck){
   }
 }
 
+const lastBeatIndex = { A: -1, B: -1 };
+function updateBeatPulse(deck){
+  const d = decks[deck];
+  const dot = document.getElementById('beatPulse-' + deck);
+  if(!d.bpm || d.audio.paused || !d.currentTrackId) return;
+  const beatSec = 60 / d.bpm;
+  const beatIndex = Math.floor(d.audio.currentTime / beatSec);
+  if(beatIndex !== lastBeatIndex[deck]){
+    lastBeatIndex[deck] = beatIndex;
+    dot.classList.remove('hit');
+    void dot.offsetWidth;
+    dot.classList.add('hit');
+  }
+}
+
 (function waveformLoop(){
   drawWaveform('A'); drawWaveform('B');
+  updateBeatPulse('A'); updateBeatPulse('B');
   requestAnimationFrame(waveformLoop);
 })();
 
@@ -1474,7 +1513,7 @@ matchTempoBtn.addEventListener('click', () => {
     clearInterval(autoBeatMatchTimer);
     autoBeatMatchTimer = null;
     matchTempoBtn.classList.remove('accent');
-    matchTempoBtn.textContent = '🔄 Sync';
+    matchTempoBtn.textContent = '🎯 Auto Beat Match: OFF';
     return;
   }
   if(!decks.A.bpm || !decks.B.bpm){
