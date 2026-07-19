@@ -236,7 +236,7 @@ input[type="range"]::-webkit-slider-thumb {
       <h4>Audio routing (headphones + speakers at once)</h4>
       <ul>
         <li>Tap <b>Show my devices</b> once to see your speakers and headphones by name.</li>
-        <li>Set <b>Decks (mix)</b> to your speakers and <b>Preview</b> to your headphones to cue up the next track privately while the crowd hears the current mix — just like a real DJ booth.</li>
+        <li>The deck mix plays through both <b>Speakers</b> and <b>Headphones</b> at once, each with its own volume slider — turn one down without affecting the other. Set <b>Preview</b> to your headphones to cue up the next track privately while the crowd hears the current mix.</li>
         <li>Without this, plugging in headphones can silently become your computer's new default output for everything.</li>
       </ul>
     </div>
@@ -454,11 +454,20 @@ input[type="range"]::-webkit-slider-thumb {
   <div class="crossfader-card" id="previewCard">
     <h3>🎧 Audio Routing</h3>
     <div class="cf-row" style="margin-bottom:8px">
-      <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Decks (mix):</span>
-      <select id="mainDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
+      <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Speakers:</span>
+      <select id="speakerDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
         <option value="">Default output</option>
       </select>
+      <input type="range" id="speakerVolume" min="0" max="100" value="100" style="width:80px">
     </div>
+    <div class="cf-row" style="margin-bottom:8px">
+      <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Headphones:</span>
+      <select id="headphoneDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
+        <option value="">Default output</option>
+      </select>
+      <input type="range" id="headphoneVolume" min="0" max="100" value="100" style="width:80px">
+    </div>
+    <div style="font-size:0.68rem;color:var(--ink-soft);margin-bottom:8px;text-align:left">The full deck mix plays through both at once — use these two volume sliders to balance speakers against headphones independently.</div>
     <div class="cf-row" style="margin-bottom:10px">
       <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Preview:</span>
       <select id="previewDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
@@ -600,11 +609,23 @@ masterLimiter.release.value = 0.1;
 
 masterGain.connect(masterComp);
 masterComp.connect(masterLimiter);
-masterLimiter.connect(audioCtx.destination);
 
-// Also tap the master bus (post-limiter) to a MediaStreamDestination so recordings match what you actually hear.
+// The master bus (post-limiter) feeds a MediaStreamDestination rather than audioCtx.destination
+// directly - that stream is then played through two independent <audio> elements (speakerOut,
+// headphoneOut), each with its own setSinkId() device and its own .volume, so the exact same mix
+// can play on speakers and headphones simultaneously with independently adjustable levels. The same
+// stream also feeds the mix recorder.
 const mediaStreamDest = audioCtx.createMediaStreamDestination();
 masterLimiter.connect(mediaStreamDest);
+
+const speakerOut = new Audio();
+speakerOut.srcObject = mediaStreamDest.stream;
+speakerOut.autoplay = true;
+speakerOut.play().catch(() => {});
+const headphoneOut = new Audio();
+headphoneOut.srcObject = mediaStreamDest.stream;
+headphoneOut.autoplay = true;
+headphoneOut.play().catch(() => {});
 
 // One shared synthetic impulse response (exponentially-decaying noise) powers both decks' reverb - no external IR file needed.
 function makeImpulseResponse(duration, decay){
@@ -1527,16 +1548,17 @@ document.getElementById('previewStopBtn').addEventListener('click', () => {
 
 // ---------- Output device routing: decks and preview can each be pinned to a specific device, so
 // plugging in headphones (which usually becomes the new *system default*) doesn't pull the decks along too. ----------
-const mainDeviceSelect = document.getElementById('mainDeviceSelect');
+const speakerDeviceSelect = document.getElementById('speakerDeviceSelect');
+const headphoneDeviceSelect = document.getElementById('headphoneDeviceSelect');
 const previewDeviceSelect = document.getElementById('previewDeviceSelect');
 const routingNote = document.getElementById('routingNote');
 
 async function populateOutputDevices(){
-  const mainSupported = typeof audioCtx.setSinkId === 'function';
+  const dualSupported = typeof speakerOut.setSinkId === 'function';
   const previewSupported = typeof previewCtx.setSinkId === 'function';
-  if(!mainSupported && !previewSupported){
-    routingNote.textContent = "This browser doesn't support choosing specific output devices — decks and preview both follow your system's default output.";
-    mainDeviceSelect.disabled = true; previewDeviceSelect.disabled = true;
+  if(!dualSupported && !previewSupported){
+    routingNote.textContent = "This browser doesn't support choosing specific output devices — everything follows your system's default output.";
+    speakerDeviceSelect.disabled = true; headphoneDeviceSelect.disabled = true; previewDeviceSelect.disabled = true;
     document.getElementById('unlockDevicesBtn').style.display = 'none';
     return;
   }
@@ -1546,14 +1568,15 @@ async function populateOutputDevices(){
     const labelled = outputs.filter(dv => dv.label);
     const optionsHtml = '<option value="">Default output</option>' +
       outputs.map(dv => `<option value="${dv.deviceId}">${escapeHtml(dv.label || 'Output device')}</option>`).join('');
-    if(mainSupported){ mainDeviceSelect.innerHTML = optionsHtml; } else { mainDeviceSelect.disabled = true; }
+    if(dualSupported){ speakerDeviceSelect.innerHTML = optionsHtml; headphoneDeviceSelect.innerHTML = optionsHtml; }
+    else { speakerDeviceSelect.disabled = true; headphoneDeviceSelect.disabled = true; }
     if(previewSupported){ previewDeviceSelect.innerHTML = optionsHtml; } else { previewDeviceSelect.disabled = true; }
     if(!labelled.length){
-      routingNote.textContent = 'Device names are hidden until you allow access — tap "Show my devices", then pick Speakers for Decks and Headphones for Preview (or vice versa).';
-    } else if(!mainSupported){
-      routingNote.textContent = "This browser can route the preview to a chosen device, but can't pin the decks — if the decks follow your headphones, that's your system's default output, not this app.";
+      routingNote.textContent = 'Device names are hidden until you allow access — tap "Show my devices", then pick your real speakers and headphones by name below.';
+    } else if(!dualSupported){
+      routingNote.textContent = "This browser can route the preview to a chosen device, but can't split speakers/headphones — both will follow your system's default output.";
     } else {
-      routingNote.textContent = "Decks and preview each stay on whichever device you pick — independent of your system default, so plugging headphones in won't pull the decks along.";
+      routingNote.textContent = "The mix plays through Speakers and Headphones at the same time, each pinned to whichever device you pick and at its own volume — independent of your system default.";
     }
   }catch(err){
     routingNote.textContent = "Couldn't list audio output devices.";
@@ -1570,12 +1593,20 @@ document.getElementById('unlockDevicesBtn').addEventListener('click', async () =
   }
 });
 
-mainDeviceSelect.addEventListener('change', async (e) => {
-  if(typeof audioCtx.setSinkId === 'function'){
-    try{ await audioCtx.setSinkId(e.target.value); }
-    catch(err){ routingNote.textContent = "Couldn't switch the decks to that device."; }
+speakerDeviceSelect.addEventListener('change', async (e) => {
+  if(typeof speakerOut.setSinkId === 'function'){
+    try{ await speakerOut.setSinkId(e.target.value); }
+    catch(err){ routingNote.textContent = "Couldn't switch the speaker output to that device."; }
   }
 });
+headphoneDeviceSelect.addEventListener('change', async (e) => {
+  if(typeof headphoneOut.setSinkId === 'function'){
+    try{ await headphoneOut.setSinkId(e.target.value); }
+    catch(err){ routingNote.textContent = "Couldn't switch the headphone output to that device."; }
+  }
+});
+document.getElementById('speakerVolume').addEventListener('input', (e) => { speakerOut.volume = Number(e.target.value) / 100; });
+document.getElementById('headphoneVolume').addEventListener('input', (e) => { headphoneOut.volume = Number(e.target.value) / 100; });
 previewDeviceSelect.addEventListener('change', async (e) => {
   if(typeof previewCtx.setSinkId === 'function'){
     try{ await previewCtx.setSinkId(e.target.value); }
