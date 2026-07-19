@@ -34,8 +34,41 @@ header .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; t
 header h1 { font-size: clamp(1.5rem, 5vw, 2rem); margin: 6px 0; font-weight: 900; }
 header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin: 0 auto; line-height: 1.5; }
 
-.decks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-@media (max-width: 620px) { .decks-grid { grid-template-columns: 1fr; } }
+.decks-grid { display: grid; grid-template-columns: 1fr 168px 1fr; gap: 12px; margin-bottom: 16px; align-items: start; }
+@media (max-width: 760px) { .decks-grid { grid-template-columns: 1fr; } .center-console { order: -1; } }
+
+.center-console { background: var(--surface); border-radius: 16px; padding: 14px 10px; box-shadow: var(--shadow); text-align: center;
+  border: 1px solid rgba(255,255,255,0.04); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.center-console .cc-label { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-top: 4px; }
+.center-console .cc-label:first-child { margin-top: 0; }
+.vfader-wrap { height: 150px; display: flex; justify-content: center; align-items: center; margin: 4px 0; }
+#masterVolume { -webkit-appearance: slider-vertical; appearance: slider-vertical; width: 26px; height: 150px; padding: 0; }
+#masterVolumeLabel { font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.center-console .cf-row-mini { display: flex; align-items: center; gap: 6px; width: 100%; }
+.center-console .cf-row-mini span { font-weight: 800; font-size: 0.72rem; }
+.center-console .cf-row-mini span.a { color: var(--accentA); }
+.center-console .cf-row-mini span.b { color: var(--accentB); }
+.center-console .cf-row-mini input[type="range"] { flex: 1; height: 8px; }
+.center-console .btn { width: 100%; }
+.limiter-note { font-size: 0.62rem; color: var(--ink-soft); line-height: 1.3; }
+
+/* ---------- Round knobs: replace stacked sliders so Speed/Bass/Treble/Filter/Echo/Reverb fit compactly ---------- */
+.knob-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 6px; margin-top: 10px; }
+.knob-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.knob-cell .klabel { font-size: 0.64rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+.knob { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line);
+  position: relative; cursor: ns-resize; touch-action: none; box-shadow: inset 0 2px 5px rgba(0,0,0,0.35); }
+.knob::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.03); pointer-events: none; }
+.knob .knob-dial { position: absolute; top: 4px; left: 50%; width: 3px; height: 38%; background: var(--deck-accent, var(--ink));
+  border-radius: 2px; transform-origin: 50% 130%; box-shadow: 0 0 5px 1px var(--deck-accent, rgba(242,241,238,0.4)); pointer-events: none; }
+.knob-cell .kvalue { font-size: 0.66rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.knob-cell input[type="range"] { display: none; }
+.knob-btn-row { display: flex; align-items: center; gap: 4px; }
+.knob-step { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2);
+  color: var(--ink-soft); font-size: 0.8rem; font-weight: 800; line-height: 1; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.knob-step:hover { color: var(--ink); border-color: var(--deck-accent, var(--ink-soft)); }
+.knob-step:active { background: var(--deck-accent, var(--surface-2)); color: #08080a; }
 
 .deck {
   background: var(--surface); border-radius: 16px; padding: 14px;
@@ -198,21 +231,6 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small cue-btn" data-cue="3" data-deck="A">Cue 4</button>
         <button class="btn small" id="cueClear-A" title="Clear all hot cues">Clear cues</button>
       </div>
-      <div class="slider-row">
-        <span class="lbl">Speed</span>
-        <input type="range" id="speed-A" min="50" max="150" value="100">
-        <b id="speedLabel-A">100%</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Bass</span>
-        <input type="range" id="bass-A" min="-20" max="20" value="0">
-        <b id="bassLabel-A">0dB</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Treble</span>
-        <input type="range" id="treble-A" min="-20" max="20" value="0">
-        <b id="trebleLabel-A">0dB</b>
-      </div>
       <div class="loop-row">
         <div class="loop-label" id="loopLabel-A">No loop section set</div>
         <button class="btn small" id="loopStart-A">Set Loop Start</button>
@@ -222,24 +240,63 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small" data-quickloop="8" data-deck="A">🔂 8 beats</button>
         <button class="btn small" data-quickloop="16" data-deck="A">🔂 16 beats</button>
       </div>
-      <div class="fx-section">
-        <div class="fx-title">FX</div>
-        <div class="slider-row">
-          <span class="lbl">Filter</span>
+      <div class="knob-grid">
+        <div class="knob-cell">
+          <span class="klabel">Speed</span>
+          <div class="knob" data-knob="speed-A"><div class="knob-dial"></div></div>
+          <input type="range" id="speed-A" min="50" max="150" value="100">
+          <b class="kvalue" id="speedLabel-A">100%</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Bass</span>
+          <div class="knob" data-knob="bass-A"><div class="knob-dial"></div></div>
+          <input type="range" id="bass-A" min="-20" max="20" value="0">
+          <b class="kvalue" id="bassLabel-A">0dB</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Treble</span>
+          <div class="knob" data-knob="treble-A"><div class="knob-dial"></div></div>
+          <input type="range" id="treble-A" min="-20" max="20" value="0">
+          <b class="kvalue" id="trebleLabel-A">0dB</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Filter</span>
+          <div class="knob" data-knob="filter-A"><div class="knob-dial"></div></div>
           <input type="range" id="filter-A" min="-100" max="100" value="0">
-          <b id="filterLabel-A">Off</b>
+          <b class="kvalue" id="filterLabel-A">Off</b>
         </div>
-        <div class="slider-row">
-          <span class="lbl">Echo</span>
+        <div class="knob-cell">
+          <span class="klabel">Echo</span>
+          <div class="knob" data-knob="echo-A"><div class="knob-dial"></div></div>
           <input type="range" id="echo-A" min="0" max="100" value="0">
-          <b id="echoLabel-A">Off</b>
+          <b class="kvalue" id="echoLabel-A">Off</b>
         </div>
-        <div class="slider-row">
-          <span class="lbl">Reverb</span>
+        <div class="knob-cell">
+          <span class="klabel">Reverb</span>
+          <div class="knob" data-knob="reverb-A"><div class="knob-dial"></div></div>
           <input type="range" id="reverb-A" min="0" max="100" value="0">
-          <b id="reverbLabel-A">Off</b>
+          <b class="kvalue" id="reverbLabel-A">Off</b>
         </div>
       </div>
+    </div>
+
+    <div class="center-console">
+      <div class="cc-label">Master</div>
+      <b id="masterVolumeLabel">100%</b>
+      <div class="vfader-wrap">
+        <input type="range" id="masterVolume" min="0" max="1000" value="100">
+      </div>
+      <div class="limiter-note">Limiter keeps boosts from distorting</div>
+      <div class="cc-label">Crossfader</div>
+      <div class="cf-row-mini">
+        <span class="a">A</span>
+        <input type="range" id="crossfader" min="0" max="100" value="50">
+        <span class="b">B</span>
+      </div>
+      <button class="btn small" id="matchTempoBtn" title="BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.">🔄 Sync</button>
+      <button class="btn small accent" id="recordBtn">⏺ Record</button>
+      <span class="btn small" id="recordStatus" style="cursor:default;font-size:0.62rem">Not recording</span>
+      <div id="recordDownload"></div>
     </div>
 
     <div class="deck deckB" id="deck-B">
@@ -268,21 +325,6 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small cue-btn" data-cue="3" data-deck="B">Cue 4</button>
         <button class="btn small" id="cueClear-B" title="Clear all hot cues">Clear cues</button>
       </div>
-      <div class="slider-row">
-        <span class="lbl">Speed</span>
-        <input type="range" id="speed-B" min="50" max="150" value="100">
-        <b id="speedLabel-B">100%</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Bass</span>
-        <input type="range" id="bass-B" min="-20" max="20" value="0">
-        <b id="bassLabel-B">0dB</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Treble</span>
-        <input type="range" id="treble-B" min="-20" max="20" value="0">
-        <b id="trebleLabel-B">0dB</b>
-      </div>
       <div class="loop-row">
         <div class="loop-label" id="loopLabel-B">No loop section set</div>
         <button class="btn small" id="loopStart-B">Set Loop Start</button>
@@ -292,22 +334,42 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small" data-quickloop="8" data-deck="B">🔂 8 beats</button>
         <button class="btn small" data-quickloop="16" data-deck="B">🔂 16 beats</button>
       </div>
-      <div class="fx-section">
-        <div class="fx-title">FX</div>
-        <div class="slider-row">
-          <span class="lbl">Filter</span>
+      <div class="knob-grid">
+        <div class="knob-cell">
+          <span class="klabel">Speed</span>
+          <div class="knob" data-knob="speed-B"><div class="knob-dial"></div></div>
+          <input type="range" id="speed-B" min="50" max="150" value="100">
+          <b class="kvalue" id="speedLabel-B">100%</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Bass</span>
+          <div class="knob" data-knob="bass-B"><div class="knob-dial"></div></div>
+          <input type="range" id="bass-B" min="-20" max="20" value="0">
+          <b class="kvalue" id="bassLabel-B">0dB</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Treble</span>
+          <div class="knob" data-knob="treble-B"><div class="knob-dial"></div></div>
+          <input type="range" id="treble-B" min="-20" max="20" value="0">
+          <b class="kvalue" id="trebleLabel-B">0dB</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Filter</span>
+          <div class="knob" data-knob="filter-B"><div class="knob-dial"></div></div>
           <input type="range" id="filter-B" min="-100" max="100" value="0">
-          <b id="filterLabel-B">Off</b>
+          <b class="kvalue" id="filterLabel-B">Off</b>
         </div>
-        <div class="slider-row">
-          <span class="lbl">Echo</span>
+        <div class="knob-cell">
+          <span class="klabel">Echo</span>
+          <div class="knob" data-knob="echo-B"><div class="knob-dial"></div></div>
           <input type="range" id="echo-B" min="0" max="100" value="0">
-          <b id="echoLabel-B">Off</b>
+          <b class="kvalue" id="echoLabel-B">Off</b>
         </div>
-        <div class="slider-row">
-          <span class="lbl">Reverb</span>
+        <div class="knob-cell">
+          <span class="klabel">Reverb</span>
+          <div class="knob" data-knob="reverb-B"><div class="knob-dial"></div></div>
           <input type="range" id="reverb-B" min="0" max="100" value="0">
-          <b id="reverbLabel-B">Off</b>
+          <b class="kvalue" id="reverbLabel-B">Off</b>
         </div>
       </div>
     </div>
@@ -343,62 +405,40 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
     <div class="fx-section">
       <div class="fx-title">Mix here, then load onto a deck — these carry over automatically</div>
-      <div class="slider-row">
-        <span class="lbl">Bass</span>
-        <input type="range" id="previewBass" min="-20" max="20" value="0">
-        <b id="previewBassLabel">0dB</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Treble</span>
-        <input type="range" id="previewTreble" min="-20" max="20" value="0">
-        <b id="previewTrebleLabel">0dB</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Filter</span>
-        <input type="range" id="previewFilter" min="-100" max="100" value="0">
-        <b id="previewFilterLabel">Off</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Echo</span>
-        <input type="range" id="previewEcho" min="0" max="100" value="0">
-        <b id="previewEchoLabel">Off</b>
-      </div>
-      <div class="slider-row">
-        <span class="lbl">Reverb</span>
-        <input type="range" id="previewReverb" min="0" max="100" value="0">
-        <b id="previewReverbLabel">Off</b>
+      <div class="knob-grid" style="grid-template-columns:repeat(5, 1fr)">
+        <div class="knob-cell">
+          <span class="klabel">Bass</span>
+          <div class="knob" data-knob="previewBass"><div class="knob-dial"></div></div>
+          <input type="range" id="previewBass" min="-20" max="20" value="0">
+          <b class="kvalue" id="previewBassLabel">0dB</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Treble</span>
+          <div class="knob" data-knob="previewTreble"><div class="knob-dial"></div></div>
+          <input type="range" id="previewTreble" min="-20" max="20" value="0">
+          <b class="kvalue" id="previewTrebleLabel">0dB</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Filter</span>
+          <div class="knob" data-knob="previewFilter"><div class="knob-dial"></div></div>
+          <input type="range" id="previewFilter" min="-100" max="100" value="0">
+          <b class="kvalue" id="previewFilterLabel">Off</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Echo</span>
+          <div class="knob" data-knob="previewEcho"><div class="knob-dial"></div></div>
+          <input type="range" id="previewEcho" min="0" max="100" value="0">
+          <b class="kvalue" id="previewEchoLabel">Off</b>
+        </div>
+        <div class="knob-cell">
+          <span class="klabel">Reverb</span>
+          <div class="knob" data-knob="previewReverb"><div class="knob-dial"></div></div>
+          <input type="range" id="previewReverb" min="0" max="100" value="0">
+          <b class="kvalue" id="previewReverbLabel">Off</b>
+        </div>
       </div>
     </div>
     <audio id="previewAudio" style="display:none"></audio>
-  </div>
-
-  <div class="crossfader-card">
-    <h3>Crossfader</h3>
-    <div class="cf-row">
-      <span class="a">A</span>
-      <input type="range" id="crossfader" min="0" max="100" value="50">
-      <span class="b">B</span>
-    </div>
-    <div class="slider-row" style="margin-top:14px;text-align:left">
-      <span class="lbl">🔊 Volume</span>
-      <input type="range" id="masterVolume" min="0" max="500" value="100">
-      <b id="masterVolumeLabel">100%</b>
-    </div>
-    <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:-4px;margin-bottom:4px;text-align:left">Past 100% a limiter kicks in automatically to stop the boost from distorting.</div>
-    <div class="tempo-match-row">
-      <button class="btn" id="matchTempoBtn">🔄 Sync Deck B to Deck A</button>
-      <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:6px" id="syncHint">BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.</div>
-    </div>
-  </div>
-
-  <div class="crossfader-card">
-    <h3>⏺ Record the Mix</h3>
-    <div style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:10px">Captures both decks, the crossfader position and all FX exactly as you hear them, and gives you a file to download when you stop.</div>
-    <div class="deck-controls" style="justify-content:center">
-      <button class="btn accent" id="recordBtn">⏺ Start Recording</button>
-      <span class="btn small" id="recordStatus" style="cursor:default">Not recording</span>
-    </div>
-    <div id="recordDownload" style="margin-top:10px"></div>
   </div>
 
   <div class="footer-note">Everything stays on this device — nothing is ever uploaded anywhere. Free to use, no account needed.</div>
@@ -456,14 +496,14 @@ masterGain.gain.value = 1;
 // (Web Audio can only amplify the digital signal - if the OS/speaker volume itself is turned down,
 // no amount of gain here can make it physically louder, so check that too.)
 const masterComp = audioCtx.createDynamicsCompressor();
-masterComp.threshold.value = -24;
-masterComp.knee.value = 12;
-masterComp.ratio.value = 4;
+masterComp.threshold.value = -32;
+masterComp.knee.value = 10;
+masterComp.ratio.value = 7;
 masterComp.attack.value = 0.006;
 masterComp.release.value = 0.15;
 
 const masterLimiter = audioCtx.createDynamicsCompressor();
-masterLimiter.threshold.value = -1;
+masterLimiter.threshold.value = -0.3;
 masterLimiter.knee.value = 0;
 masterLimiter.ratio.value = 20;
 masterLimiter.attack.value = 0.001;
@@ -1063,24 +1103,11 @@ function applyPreviewFilter(val){
 }
 
 function applyPreviewFxSettings(s){
-  document.getElementById('previewBass').value = s.bass;
-  previewBassFilter.gain.value = s.bass;
-  document.getElementById('previewBassLabel').textContent = (s.bass > 0 ? '+' : '') + s.bass + 'dB';
-
-  document.getElementById('previewTreble').value = s.treble;
-  previewTrebleFilter.gain.value = s.treble;
-  document.getElementById('previewTrebleLabel').textContent = (s.treble > 0 ? '+' : '') + s.treble + 'dB';
-
-  document.getElementById('previewFilter').value = s.filter;
-  applyPreviewFilter(s.filter);
-
-  document.getElementById('previewEcho').value = s.echo;
-  previewDelayWet.gain.value = (s.echo / 100) * 0.5;
-  document.getElementById('previewEchoLabel').textContent = s.echo === 0 ? 'Off' : s.echo + '%';
-
-  document.getElementById('previewReverb').value = s.reverb;
-  previewReverbWet.gain.value = (s.reverb / 100) * 0.6;
-  document.getElementById('previewReverbLabel').textContent = s.reverb === 0 ? 'Off' : s.reverb + '%';
+  ['Bass', 'Treble', 'Filter', 'Echo', 'Reverb'].forEach(param => {
+    const el = document.getElementById('preview' + param);
+    el.value = s[param.toLowerCase()];
+    el.dispatchEvent(new Event('input'));
+  });
 }
 
 function saveCurrentPreviewFx(){
@@ -1107,25 +1134,11 @@ function saveCurrentPreviewFx(){
 });
 
 function applyDeckFxSettings(deck, s){
-  const d = decks[deck];
-  document.getElementById('bass-' + deck).value = s.bass;
-  d.bassFilter.gain.value = s.bass;
-  document.getElementById('bassLabel-' + deck).textContent = (s.bass > 0 ? '+' : '') + s.bass + 'dB';
-
-  document.getElementById('treble-' + deck).value = s.treble;
-  d.trebleFilter.gain.value = s.treble;
-  document.getElementById('trebleLabel-' + deck).textContent = (s.treble > 0 ? '+' : '') + s.treble + 'dB';
-
-  document.getElementById('filter-' + deck).value = s.filter;
-  applyFilter(deck, s.filter);
-
-  document.getElementById('echo-' + deck).value = s.echo;
-  d.delayWet.gain.value = (s.echo / 100) * 0.5;
-  document.getElementById('echoLabel-' + deck).textContent = s.echo === 0 ? 'Off' : s.echo + '%';
-
-  document.getElementById('reverb-' + deck).value = s.reverb;
-  d.reverbWet.gain.value = (s.reverb / 100) * 0.6;
-  document.getElementById('reverbLabel-' + deck).textContent = s.reverb === 0 ? 'Off' : s.reverb + '%';
+  ['bass', 'treble', 'filter', 'echo', 'reverb'].forEach(param => {
+    const el = document.getElementById(param + '-' + deck);
+    el.value = s[param];
+    el.dispatchEvent(new Event('input'));
+  });
 }
 
 async function previewTrack(track, deck){
@@ -1290,11 +1303,13 @@ masterVolumeEl.addEventListener('input', (e) => {
   document.getElementById('masterVolumeLabel').textContent = pct + '%';
 });
 
-// ---------- Sync: matches Deck B's speed to Deck A's BPM (auto-detected or tapped), then nudges
-// B's beat phase to line up with A's, using A's beat length as the shared grid. ----------
-document.getElementById('matchTempoBtn').addEventListener('click', () => {
+// ---------- Auto Beat Match: matches Deck B's speed to Deck A's BPM (auto-detected or tapped), then nudges
+// B's beat phase to line up with A's, using A's beat length as the shared grid. Any two tracks can be pulled
+// into sync this way regardless of their original tempo (capped by the Speed knob's 50-150% range). As a
+// toggle it keeps re-checking every 1.5s while both decks are playing, correcting any drift automatically. ----------
+function syncDeckBToA(silent){
   if(!decks.A.bpm || !decks.B.bpm){
-    alert('BPM not known yet for one or both decks — load tracks and give auto-detection a moment, or tap tempo manually.');
+    if(!silent) alert('BPM not known yet for one or both decks — load tracks and give auto-detection a moment, or tap tempo manually.');
     return;
   }
   const ratio = decks.A.bpm / decks.B.bpm;
@@ -1302,9 +1317,7 @@ document.getElementById('matchTempoBtn').addEventListener('click', () => {
   let newPct = Math.round(currentRate * ratio * 100);
   newPct = Math.max(50, Math.min(150, newPct));
   document.getElementById('speed-B').value = newPct;
-  decks.B.audio.playbackRate = newPct / 100;
-  decks.B.audio.preservesPitch = true; decks.B.audio.mozPreservesPitch = true; decks.B.audio.webkitPreservesPitch = true;
-  document.getElementById('speedLabel-B').textContent = newPct + '%';
+  document.getElementById('speed-B').dispatchEvent(new Event('input'));
 
   const beatSec = 60 / decks.A.bpm;
   const phaseA = decks.A.audio.currentTime % beatSec;
@@ -1314,6 +1327,26 @@ document.getElementById('matchTempoBtn').addEventListener('click', () => {
   if(diff < -beatSec / 2) diff += beatSec;
   const newTime = decks.B.audio.currentTime + diff;
   if(newTime >= 0 && newTime <= (decks.B.audio.duration || Infinity)) decks.B.audio.currentTime = newTime;
+}
+
+let autoBeatMatchTimer = null;
+const matchTempoBtn = document.getElementById('matchTempoBtn');
+matchTempoBtn.addEventListener('click', () => {
+  if(autoBeatMatchTimer){
+    clearInterval(autoBeatMatchTimer);
+    autoBeatMatchTimer = null;
+    matchTempoBtn.classList.remove('accent');
+    matchTempoBtn.textContent = '🔄 Sync';
+    return;
+  }
+  if(!decks.A.bpm || !decks.B.bpm){
+    alert('BPM not known yet for one or both decks — load tracks and give auto-detection a moment, or tap tempo manually.');
+    return;
+  }
+  syncDeckBToA(true);
+  autoBeatMatchTimer = setInterval(() => syncDeckBToA(true), 1500);
+  matchTempoBtn.classList.add('accent');
+  matchTempoBtn.textContent = '🎯 Auto Beat Match: ON';
 });
 
 // ---------- Record the mix: taps the exact master bus (both decks, crossfader, all FX) via MediaStreamDestination ----------
@@ -1341,6 +1374,71 @@ document.getElementById('recordBtn').addEventListener('click', async () => {
   mediaRecorder.start();
   document.getElementById('recordBtn').textContent = '⏹ Stop Recording';
   document.getElementById('recordStatus').textContent = '🔴 Recording…';
+});
+
+// ---------- Round knobs: drag up/down to change, +/- buttons for precise nudges. The underlying
+// <input type="range"> stays in the DOM as the real data model - existing 'input' listeners elsewhere
+// keep working untouched, the knob just drives them via .value + a dispatched 'input' event. ----------
+function setupKnob(id, opts){
+  const input = document.getElementById(id);
+  const knob = document.querySelector(`.knob[data-knob="${id}"]`);
+  if(!input || !knob) return;
+  const dial = knob.querySelector('.knob-dial');
+  const min = Number(input.min), max = Number(input.max);
+  const step = (opts && opts.step) || 1;
+  const resetVal = (opts && opts.reset !== undefined) ? opts.reset : min;
+  const sensitivity = (max - min) / 150;
+
+  const minusBtn = document.createElement('button');
+  minusBtn.className = 'knob-step'; minusBtn.type = 'button'; minusBtn.textContent = '−';
+  const plusBtn = document.createElement('button');
+  plusBtn.className = 'knob-step'; plusBtn.type = 'button'; plusBtn.textContent = '+';
+  const row = document.createElement('div');
+  row.className = 'knob-btn-row';
+  knob.parentNode.insertBefore(row, knob);
+  row.appendChild(minusBtn); row.appendChild(knob); row.appendChild(plusBtn);
+
+  function setValue(v){
+    v = Math.max(min, Math.min(max, v));
+    input.value = v;
+    input.dispatchEvent(new Event('input'));
+  }
+  function render(){
+    const v = Number(input.value);
+    const angle = -135 + ((v - min) / (max - min)) * 270;
+    dial.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+  }
+  render();
+  input.addEventListener('input', render);
+
+  minusBtn.addEventListener('click', () => setValue(Number(input.value) - step));
+  plusBtn.addEventListener('click', () => setValue(Number(input.value) + step));
+
+  let dragging = false, startY = 0, startVal = 0;
+  knob.addEventListener('pointerdown', (e) => {
+    dragging = true; startY = e.clientY; startVal = Number(input.value);
+    knob.setPointerCapture(e.pointerId);
+  });
+  knob.addEventListener('pointermove', (e) => {
+    if(!dragging) return;
+    const delta = startY - e.clientY;
+    setValue(startVal + delta * sensitivity);
+  });
+  knob.addEventListener('pointerup', () => { dragging = false; });
+  knob.addEventListener('dblclick', () => setValue(resetVal));
+}
+
+['A', 'B'].forEach(deck => {
+  setupKnob('speed-' + deck, { step: 1, reset: 100 });
+  setupKnob('bass-' + deck, { step: 1, reset: 0 });
+  setupKnob('treble-' + deck, { step: 1, reset: 0 });
+  setupKnob('filter-' + deck, { step: 5, reset: 0 });
+  setupKnob('echo-' + deck, { step: 5, reset: 0 });
+  setupKnob('reverb-' + deck, { step: 5, reset: 0 });
+});
+['previewBass', 'previewTreble', 'previewFilter', 'previewEcho', 'previewReverb'].forEach(id => {
+  const step = id === 'previewFilter' || id === 'previewEcho' || id === 'previewReverb' ? 5 : 1;
+  setupKnob(id, { step, reset: 0 });
 });
 
 if ("serviceWorker" in navigator) {
