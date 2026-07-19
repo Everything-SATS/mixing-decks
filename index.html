@@ -83,15 +83,30 @@ header p { color: var(--ink-soft); font-size: 0.72rem; max-width: 560px; margin:
 .knob-step:hover { color: var(--ink); border-color: var(--deck-accent, var(--ink-soft)); }
 .knob-step:active { background: var(--deck-accent, var(--surface-2)); color: #08080a; }
 
-/* ---------- Beat ladder: a 6-LED column per deck that sweeps bottom-to-top across each beat cycle,
-   flanking the master fader so two decks' timing can be compared visually at a glance. ---------- */
+/* ---------- Beat ladder: a 6-LED VU-style column per deck that bounces up then back down across each
+   beat (not a hard reset), classic green-to-red studio meter colouring, flanking the master fader so two
+   decks' timing can be compared visually at a glance. ---------- */
 .master-row { display: flex; gap: 10px; justify-content: center; align-items: flex-end; }
 .beat-ladder-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .beat-ladder-col .bl-label { font-size: 0.6rem; font-weight: 800; color: var(--ink-soft); }
-.beat-ladder { display: flex; flex-direction: column-reverse; gap: 4px; }
-.beat-ladder .led { width: 26px; height: 20px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--line); }
-.beat-ladder .led.lit.a { background: var(--accentA); border-color: var(--accentA); box-shadow: 0 0 7px 1px var(--accentA); }
-.beat-ladder .led.lit.b { background: var(--accentB); border-color: var(--accentB); box-shadow: 0 0 7px 1px var(--accentB); }
+.beat-ladder { display: flex; flex-direction: column-reverse; gap: 2px; }
+.beat-ladder .led { width: 26px; height: 9px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--line); transition: background 0.05s linear, box-shadow 0.05s linear; }
+.beat-ladder .led:nth-child(-n+5) { --led-color: #4CAF50; }
+.beat-ladder .led:nth-child(n+6):nth-child(-n+9) { --led-color: #E8C43E; }
+.beat-ladder .led:nth-child(n+10):nth-child(-n+11) { --led-color: #F2942E; }
+.beat-ladder .led:nth-child(12) { --led-color: #E8453E; }
+.beat-ladder .led.lit { background: var(--led-color); border-color: var(--led-color); box-shadow: 0 0 6px 1px var(--led-color); }
+
+/* ---------- Jog wheel: drag to scratch/scrub, spins on its own during normal playback ---------- */
+.jog-wheel-wrap { display: flex; justify-content: center; margin: 4px 0 10px; }
+.jog-wheel { width: 92px; height: 92px; border-radius: 50%; position: relative; cursor: grab; touch-action: none;
+  background: radial-gradient(circle at 35% 30%, #3f434d, #17181b 72%);
+  border: 3px solid var(--deck-accent); box-shadow: 0 0 18px -6px var(--deck-accent), inset 0 0 12px rgba(0,0,0,0.6); }
+.jog-wheel:active { cursor: grabbing; }
+.jog-wheel .jog-marker { position: absolute; top: 5px; left: 50%; width: 4px; height: 12px; background: var(--deck-accent);
+  border-radius: 2px; transform-origin: 50% 41px; box-shadow: 0 0 6px 1px var(--deck-accent); }
+.jog-wheel .jog-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 1.2rem; color: var(--ink-soft); opacity: 0.5; pointer-events: none; }
 
 .deck {
   background: var(--surface); border-radius: 16px; padding: 14px;
@@ -250,6 +265,12 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small" id="nudgeDown-A" title="Hold to briefly slow down and nudge the beat back">⏪ Nudge</button>
         <button class="btn small" id="nudgeUp-A" title="Hold to briefly speed up and nudge the beat forward">Nudge ⏩</button>
       </div>
+      <div class="jog-wheel-wrap">
+        <div class="jog-wheel" id="jogWheel-A" title="Drag to scratch/scrub. Spins on its own while playing.">
+          <div class="jog-marker"></div>
+          <div class="jog-center">A</div>
+        </div>
+      </div>
       <div class="cue-row" id="cueRow-A">
         <button class="btn small cue-btn" data-cue="0" data-deck="A">Cue 1</button>
         <button class="btn small cue-btn" data-cue="1" data-deck="A">Cue 2</button>
@@ -314,6 +335,8 @@ input[type="range"]::-webkit-slider-thumb {
           <div class="beat-ladder" id="beatLadder-A">
             <div class="led"></div><div class="led"></div><div class="led"></div>
             <div class="led"></div><div class="led"></div><div class="led"></div>
+            <div class="led"></div><div class="led"></div><div class="led"></div>
+            <div class="led"></div><div class="led"></div><div class="led"></div>
           </div>
           <span class="bl-label">A</span>
         </div>
@@ -322,6 +345,8 @@ input[type="range"]::-webkit-slider-thumb {
         </div>
         <div class="beat-ladder-col">
           <div class="beat-ladder" id="beatLadder-B">
+            <div class="led"></div><div class="led"></div><div class="led"></div>
+            <div class="led"></div><div class="led"></div><div class="led"></div>
             <div class="led"></div><div class="led"></div><div class="led"></div>
             <div class="led"></div><div class="led"></div><div class="led"></div>
           </div>
@@ -362,6 +387,12 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small" id="autoPlayBtn-B" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
         <button class="btn small" id="nudgeDown-B" title="Hold to briefly slow down and nudge the beat back">⏪ Nudge</button>
         <button class="btn small" id="nudgeUp-B" title="Hold to briefly speed up and nudge the beat forward">Nudge ⏩</button>
+      </div>
+      <div class="jog-wheel-wrap">
+        <div class="jog-wheel" id="jogWheel-B" title="Drag to scratch/scrub. Spins on its own while playing.">
+          <div class="jog-marker"></div>
+          <div class="jog-center">B</div>
+        </div>
       </div>
       <div class="cue-row" id="cueRow-B">
         <button class="btn small cue-btn" data-cue="0" data-deck="B">Cue 1</button>
@@ -928,17 +959,14 @@ function updateBeatPulse(deck){
   const d = decks[deck];
   const leds = beatLadderLeds[deck];
   if(!d.bpm || d.audio.paused || !d.currentTrackId){
-    leds.forEach(l => l.classList.remove('lit', 'a', 'b'));
+    leds.forEach(l => l.classList.remove('lit'));
     return;
   }
   const beatSec = 60 / d.bpm;
   const phase = (d.audio.currentTime % beatSec) / beatSec; // 0..1 progress through the current beat
-  const litIndex = Math.min(5, Math.floor(phase * 6));
-  leds.forEach((l, i) => {
-    const on = i === litIndex;
-    l.classList.toggle('lit', on);
-    l.classList.toggle(deck === 'A' ? 'a' : 'b', on);
-  });
+  const bounce = 1 - Math.abs(1 - 2 * phase); // triangle wave: rises 0->1 then falls 1->0 each beat
+  const fillCount = Math.round(bounce * leds.length);
+  leds.forEach((l, i) => l.classList.toggle('lit', i < fillCount));
 }
 
 (function waveformLoop(){
@@ -946,6 +974,57 @@ function updateBeatPulse(deck){
   updateBeatPulse('A'); updateBeatPulse('B');
   requestAnimationFrame(waveformLoop);
 })();
+
+// ---------- Jog wheel: drag to scratch/scrub the track position; spins on its own during normal
+// playback for visual "record is spinning" feedback, just like a real CDJ/turntable jog wheel. ----------
+function setupJogWheel(deck){
+  const d = decks[deck];
+  const wheel = document.getElementById('jogWheel-' + deck);
+  const marker = wheel.querySelector('.jog-marker');
+  let rotation = 0;
+  let dragging = false;
+  let lastAngle = 0;
+
+  function angleFromEvent(e){
+    const r = wheel.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    return Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+  }
+
+  wheel.addEventListener('pointerdown', (e) => {
+    if(!d.currentTrackId) return;
+    dragging = true;
+    lastAngle = angleFromEvent(e);
+    wheel.setPointerCapture(e.pointerId);
+  });
+  wheel.addEventListener('pointermove', (e) => {
+    if(!dragging) return;
+    const angle = angleFromEvent(e);
+    let delta = angle - lastAngle;
+    if(delta > 180) delta -= 360;
+    if(delta < -180) delta += 360;
+    lastAngle = angle;
+    rotation += delta;
+    marker.style.transform = `rotate(${rotation}deg)`;
+    // One full turn scrubs ~2 seconds of audio - a scratch/scrub feel without needing reversed audio playback.
+    const scrubSeconds = (delta / 360) * 2;
+    const newTime = d.audio.currentTime + scrubSeconds;
+    d.audio.currentTime = Math.max(0, Math.min(d.audio.duration || newTime, newTime));
+  });
+  function stopDrag(){ dragging = false; }
+  wheel.addEventListener('pointerup', stopDrag);
+  wheel.addEventListener('pointerleave', stopDrag);
+
+  (function spinLoop(){
+    if(!dragging && !d.audio.paused && d.currentTrackId != null){
+      rotation += 1.2;
+      marker.style.transform = `rotate(${rotation}deg)`;
+    }
+    requestAnimationFrame(spinLoop);
+  })();
+}
+setupJogWheel('A');
+setupJogWheel('B');
 
 ['A', 'B'].forEach(deck => {
   document.getElementById('waveform-' + deck).addEventListener('click', (e) => {
