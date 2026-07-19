@@ -349,7 +349,7 @@ input[type="range"].vslider::-webkit-slider-thumb {
           <span class="bl-label">A</span>
         </div>
         <div class="vfader-wrap">
-          <input type="range" id="masterVolume" min="0" max="100" value="75">
+          <input type="range" class="vslider" id="masterVolume" min="0" max="100" value="75">
         </div>
         <div class="beat-ladder-col">
           <div class="beat-ladder" id="beatLadder-B">
@@ -1675,9 +1675,11 @@ function syncDeckBToA(silent){
     if(!silent) alert('BPM not known yet for one or both decks — load tracks and give auto-detection a moment, or tap tempo manually.');
     return;
   }
+  // Target rate is computed fresh from the two decks' nominal BPMs every time - NOT multiplied against
+  // the deck's current (possibly already-adjusted) rate, which would compound upward on every repeat
+  // tick of the Auto Beat Match interval and run away toward the speed ceiling within a few seconds.
   const ratio = decks.A.bpm / decks.B.bpm;
-  const currentRate = decks.B.audio.playbackRate || 1;
-  let newPct = Math.round(currentRate * ratio * 100);
+  let newPct = Math.round(ratio * 100);
   newPct = Math.max(50, Math.min(150, newPct));
   document.getElementById('speed-B').value = newPct;
   document.getElementById('speed-B').dispatchEvent(new Event('input'));
