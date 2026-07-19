@@ -467,7 +467,14 @@ input[type="range"]::-webkit-slider-thumb {
       </select>
       <input type="range" id="headphoneVolume" min="0" max="100" value="100" style="width:80px">
     </div>
-    <div style="font-size:0.68rem;color:var(--ink-soft);margin-bottom:8px;text-align:left">The full deck mix plays through both at once — use these two volume sliders to balance speakers against headphones independently.</div>
+    <div style="font-size:0.68rem;color:var(--ink-soft);margin-bottom:6px;text-align:left">The full deck mix plays through both at once — use these two volume sliders to balance speakers against headphones independently.</div>
+    <div class="cf-row" style="margin-bottom:6px">
+      <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">HP Crossfader:</span>
+      <span class="a" style="font-weight:800;font-size:0.85rem;color:var(--accentA)">A</span>
+      <input type="range" id="headphoneCrossfader" min="0" max="100" value="50" style="flex:1">
+      <span class="b" style="font-weight:800;font-size:0.85rem;color:var(--accentB)">B</span>
+    </div>
+    <div style="font-size:0.68rem;color:var(--ink-soft);margin-bottom:8px;text-align:left">Cue up a different Deck A/B blend in headphones than what the speakers are playing — fully independent of the main crossfader.</div>
     <div class="cf-row" style="margin-bottom:10px">
       <span style="font-size:0.78rem;color:var(--ink-soft);width:110px;text-align:left;flex-shrink:0">Preview:</span>
       <select id="previewDeviceSelect" style="flex:1;padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:0.8rem">
@@ -583,49 +590,47 @@ async function deleteTrack(deck, id){
   });
 }
 
-// ---------- Web Audio graph: audio element -> EQ -> filter sweep -> [dry + echo + reverb] -> deck gain -> master ----------
+// ---------- Web Audio graph: audio element -> EQ -> filter sweep -> [dry + echo + reverb] -> TWO
+// independent crossfade buses (speaker, headphone) -> two independent master/comp/limiter chains ->
+// two independent output devices. Each deck fans its processed signal out to both buses, but the
+// crossfade blend and everything downstream of it is fully separate per bus, so the speaker mix and
+// the headphone mix can each be at a completely different point between Deck A and Deck B. ----------
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-const masterGain = audioCtx.createGain();
-masterGain.gain.value = 1;
 
-// Two-stage loudness maximizer, the same idea a mastering chain uses: a gentler compressor first
-// raises the *average* (perceived) loudness by narrowing dynamic range, then a fast brickwall
-// limiter catches peaks right at the ceiling so pushing past 100% gets louder without harsh clipping.
-// (Web Audio can only amplify the digital signal - if the OS/speaker volume itself is turned down,
-// no amount of gain here can make it physically louder, so check that too.)
-const masterComp = audioCtx.createDynamicsCompressor();
-masterComp.threshold.value = -18;
-masterComp.knee.value = 8;
-masterComp.ratio.value = 4;
-masterComp.attack.value = 0.006;
-masterComp.release.value = 0.15;
+function makeOutputBus(){
+  const masterGain = audioCtx.createGain();
+  masterGain.gain.value = 1;
+  // Two-stage loudness maximizer, the same idea a mastering chain uses: a gentler compressor first
+  // raises the *average* (perceived) loudness by narrowing dynamic range, then a fast brickwall
+  // limiter catches peaks right at the ceiling so pushing past 100% gets louder without harsh clipping.
+  const comp = audioCtx.createDynamicsCompressor();
+  comp.threshold.value = -18; comp.knee.value = 8; comp.ratio.value = 4;
+  comp.attack.value = 0.006; comp.release.value = 0.15;
+  const limiter = audioCtx.createDynamicsCompressor();
+  limiter.threshold.value = -0.5; limiter.knee.value = 0; limiter.ratio.value = 20;
+  limiter.attack.value = 0.001; limiter.release.value = 0.1;
+  masterGain.connect(comp);
+  comp.connect(limiter);
+  const streamDest = audioCtx.createMediaStreamDestination();
+  limiter.connect(streamDest);
+  return { masterGain, comp, limiter, streamDest };
+}
 
-const masterLimiter = audioCtx.createDynamicsCompressor();
-masterLimiter.threshold.value = -0.5;
-masterLimiter.knee.value = 0;
-masterLimiter.ratio.value = 20;
-masterLimiter.attack.value = 0.001;
-masterLimiter.release.value = 0.1;
-
-masterGain.connect(masterComp);
-masterComp.connect(masterLimiter);
-
-// The master bus (post-limiter) feeds a MediaStreamDestination rather than audioCtx.destination
-// directly - that stream is then played through two independent <audio> elements (speakerOut,
-// headphoneOut), each with its own setSinkId() device and its own .volume, so the exact same mix
-// can play on speakers and headphones simultaneously with independently adjustable levels. The same
-// stream also feeds the mix recorder.
-const mediaStreamDest = audioCtx.createMediaStreamDestination();
-masterLimiter.connect(mediaStreamDest);
+const speakerBus = makeOutputBus();
+const headphoneBus = makeOutputBus();
 
 const speakerOut = new Audio();
-speakerOut.srcObject = mediaStreamDest.stream;
+speakerOut.srcObject = speakerBus.streamDest.stream;
 speakerOut.autoplay = true;
 speakerOut.play().catch(() => {});
 const headphoneOut = new Audio();
-headphoneOut.srcObject = mediaStreamDest.stream;
+headphoneOut.srcObject = headphoneBus.streamDest.stream;
 headphoneOut.autoplay = true;
 headphoneOut.play().catch(() => {});
+
+// The mix recorder always taps the speaker bus (the "audience-facing" mix), same as recording a real DJ set.
+const mediaStreamDest = audioCtx.createMediaStreamDestination();
+speakerBus.limiter.connect(mediaStreamDest);
 
 // One shared synthetic impulse response (exponentially-decaying noise) powers both decks' reverb - no external IR file needed.
 function makeImpulseResponse(duration, decay){
@@ -661,22 +666,28 @@ function makeDeck(deck){
   convolver.buffer = sharedImpulseResponse;
   const reverbWet = audioCtx.createGain(); reverbWet.gain.value = 0;
 
-  const gainNode = audioCtx.createGain();
-  gainNode.gain.value = deck === 'A' ? 1 : 0; // crossfader starts centered at 50, set properly below
+  // Two independent crossfade gain stages - one per output bus - so the speaker mix and the
+  // headphone mix can each sit at a completely different Deck A/B blend position.
+  const speakerGain = audioCtx.createGain();
+  const headphoneGain = audioCtx.createGain();
+  speakerGain.gain.value = deck === 'A' ? 1 : 0;
+  headphoneGain.gain.value = deck === 'A' ? 1 : 0;
 
   source.connect(bassFilter);
   bassFilter.connect(trebleFilter);
   trebleFilter.connect(filterNode);
-  filterNode.connect(gainNode); // dry path
+  filterNode.connect(speakerGain); filterNode.connect(headphoneGain); // dry path, fanned to both buses
   filterNode.connect(delayNode);
   delayNode.connect(delayFeedback); delayFeedback.connect(delayNode); // feedback loop
-  delayNode.connect(delayWet); delayWet.connect(gainNode);
+  delayNode.connect(delayWet); delayWet.connect(speakerGain); delayWet.connect(headphoneGain);
   filterNode.connect(convolver);
-  convolver.connect(reverbWet); reverbWet.connect(gainNode);
-  gainNode.connect(masterGain);
+  convolver.connect(reverbWet); reverbWet.connect(speakerGain); reverbWet.connect(headphoneGain);
+  speakerGain.connect(speakerBus.masterGain);
+  headphoneGain.connect(headphoneBus.masterGain);
 
   return {
-    deck, audio, bassFilter, trebleFilter, filterNode, delayNode, delayFeedback, delayWet, convolver, reverbWet, gainNode,
+    deck, audio, bassFilter, trebleFilter, filterNode, delayNode, delayFeedback, delayWet, convolver, reverbWet,
+    speakerGain, headphoneGain,
     currentTrackId: null, currentUrl: null,
     loopStart: null, loopEnd: null, loopOn: false,
     tapTimes: [], bpm: null, bpmAuto: false,
@@ -868,6 +879,8 @@ function loadTrack(deck, track, opts){
     anyTrackLoaded = true;
     crossfaderEl.value = deck === 'A' ? 0 : 100;
     crossfaderEl.dispatchEvent(new Event('input'));
+    headphoneCrossfaderEl.value = deck === 'A' ? 0 : 100;
+    headphoneCrossfaderEl.dispatchEvent(new Event('input'));
   }
 
   if(d.currentUrl) URL.revokeObjectURL(d.currentUrl);
@@ -1620,20 +1633,34 @@ populateOutputDevices();
 const crossfaderEl = document.getElementById('crossfader');
 function applyCrossfader(){
   const pos = Number(crossfaderEl.value) / 100; // 0 = full A, 1 = full B
-  decks.A.gainNode.gain.value = Math.cos(pos * Math.PI / 2);
-  decks.B.gainNode.gain.value = Math.sin(pos * Math.PI / 2);
+  decks.A.speakerGain.gain.value = Math.cos(pos * Math.PI / 2);
+  decks.B.speakerGain.gain.value = Math.sin(pos * Math.PI / 2);
 }
 crossfaderEl.addEventListener('input', applyCrossfader);
 applyCrossfader();
 
+// Headphone crossfader is fully independent of the speaker one above - lets you cue up a different
+// blend of Deck A/B in headphones than what the speakers are currently playing.
+const headphoneCrossfaderEl = document.getElementById('headphoneCrossfader');
+function applyHeadphoneCrossfader(){
+  const pos = Number(headphoneCrossfaderEl.value) / 100;
+  decks.A.headphoneGain.gain.value = Math.cos(pos * Math.PI / 2);
+  decks.B.headphoneGain.gain.value = Math.sin(pos * Math.PI / 2);
+}
+headphoneCrossfaderEl.addEventListener('input', applyHeadphoneCrossfader);
+applyHeadphoneCrossfader();
+
 // Logarithmic volume curve (dB-linear) so it climbs smoothly across the whole 0-100% range instead
 // of hitting the limiter ceiling early and going flat - 0% is near-silent, 100% is the safe maximum.
+// Drives both output buses equally (their independent compressor/limiter chains handle downstream).
 const masterVolumeEl = document.getElementById('masterVolume');
 const MASTER_MIN_DB = -40, MASTER_MAX_DB = 14;
 masterVolumeEl.addEventListener('input', (e) => {
   const pct = Number(e.target.value);
   const gainDB = MASTER_MIN_DB + (pct / 100) * (MASTER_MAX_DB - MASTER_MIN_DB);
-  masterGain.gain.value = Math.pow(10, gainDB / 20);
+  const g = Math.pow(10, gainDB / 20);
+  speakerBus.masterGain.gain.value = g;
+  headphoneBus.masterGain.gain.value = g;
   document.getElementById('masterVolumeLabel').textContent = pct + '%';
 });
 masterVolumeEl.dispatchEvent(new Event('input'));
