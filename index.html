@@ -341,6 +341,34 @@ input[type="range"]::-webkit-slider-thumb {
       <button class="btn small" id="previewPauseBtn">⏸ Pause</button>
       <button class="btn small" id="previewStopBtn">⏹ Stop</button>
     </div>
+    <div class="fx-section">
+      <div class="fx-title">Mix here, then load onto a deck — these carry over automatically</div>
+      <div class="slider-row">
+        <span class="lbl">Bass</span>
+        <input type="range" id="previewBass" min="-20" max="20" value="0">
+        <b id="previewBassLabel">0dB</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Treble</span>
+        <input type="range" id="previewTreble" min="-20" max="20" value="0">
+        <b id="previewTrebleLabel">0dB</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Filter</span>
+        <input type="range" id="previewFilter" min="-100" max="100" value="0">
+        <b id="previewFilterLabel">Off</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Echo</span>
+        <input type="range" id="previewEcho" min="0" max="100" value="0">
+        <b id="previewEchoLabel">Off</b>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">Reverb</span>
+        <input type="range" id="previewReverb" min="0" max="100" value="0">
+        <b id="previewReverbLabel">Off</b>
+      </div>
+    </div>
     <audio id="previewAudio" style="display:none"></audio>
   </div>
 
@@ -647,6 +675,7 @@ async function renderTrackList(deck){
         document.getElementById('nowPlaying-' + deck).textContent = 'No track loaded';
       }
       if(deck === previewTrackDeck && id === previewTrackId) clearPreview();
+      delete trackFxSettings[fxKey(deck, id)];
       await deleteTrack(deck, id);
       renderTrackList(deck);
     });
@@ -661,12 +690,24 @@ function escapeHtml(str){
 
 function loadTrack(deck, track){
   const d = decks[deck];
+
+  // If this exact track is currently playing in Preview, hand off seamlessly instead of both
+  // playing independently (which would sound doubled/out of sync) - same position, same play state.
+  const handoff = (previewTrackId === track.id && previewTrackDeck === deck);
+  const handoffTime = handoff ? previewAudio.currentTime : 0;
+  const handoffWasPlaying = handoff ? !previewAudio.paused : true;
+  if(handoff) clearPreview();
+
   if(d.currentUrl) URL.revokeObjectURL(d.currentUrl);
   d.currentUrl = URL.createObjectURL(track.blob);
   d.currentTrackId = track.id;
   d.audio.pause();
   d.audio.src = d.currentUrl;
-  d.audio.play().catch(() => {});
+  if(handoffTime > 0){
+    const seekOnce = () => { d.audio.currentTime = handoffTime; d.audio.removeEventListener('loadedmetadata', seekOnce); };
+    d.audio.addEventListener('loadedmetadata', seekOnce);
+  }
+  if(handoffWasPlaying) d.audio.play().catch(() => {});
   document.getElementById('nowPlaying-' + deck).textContent = track.name;
   d.loopStart = null; d.loopEnd = null; d.loopOn = false;
   document.getElementById('loopLabel-' + deck).textContent = 'No loop section set';
@@ -677,6 +718,9 @@ function loadTrack(deck, track){
   d.bpm = null; d.bpmAuto = false;
   document.getElementById('bpmLabel-' + deck).textContent = 'Analyzing…';
   renderTrackList(deck);
+
+  const fxKeyForTrack = fxKey(deck, track.id);
+  if(trackFxSettings[fxKeyForTrack]) applyDeckFxSettings(deck, trackFxSettings[fxKeyForTrack]);
 
   const loadId = track.id;
   track.blob.arrayBuffer()
@@ -951,16 +995,138 @@ const previewAudio = document.getElementById('previewAudio');
 let previewTrackId = null;
 let previewTrackDeck = null;
 
+// Per-track mix settings (bass/treble/filter/echo/reverb) prepped in Preview, keyed by "deck:trackId"
+// so they carry over automatically the moment that exact track gets loaded onto that deck.
+const trackFxSettings = {};
+function fxKey(deck, id){ return deck + ':' + id; }
+
 // A separate AudioContext for the preview player (not the decks' audioCtx) so it can be routed to
 // its own output device independently, and so it can be tapped for the visualiser without touching
-// the decks' signal path at all.
+// the decks' signal path at all. Carries the same EQ/filter/echo/reverb chain as a deck.
 const previewCtx = new (window.AudioContext || window.webkitAudioContext)();
 const previewSource = previewCtx.createMediaElementSource(previewAudio);
+const previewBassFilter = previewCtx.createBiquadFilter();
+previewBassFilter.type = 'lowshelf'; previewBassFilter.frequency.value = 200; previewBassFilter.gain.value = 0;
+const previewTrebleFilter = previewCtx.createBiquadFilter();
+previewTrebleFilter.type = 'highshelf'; previewTrebleFilter.frequency.value = 3000; previewTrebleFilter.gain.value = 0;
+const previewFilterNode = previewCtx.createBiquadFilter();
+previewFilterNode.type = 'allpass'; previewFilterNode.frequency.value = 1000;
+
+const previewDelayNode = previewCtx.createDelay(1.0); previewDelayNode.delayTime.value = 0.28;
+const previewDelayFeedback = previewCtx.createGain(); previewDelayFeedback.gain.value = 0.35;
+const previewDelayWet = previewCtx.createGain(); previewDelayWet.gain.value = 0;
+
+function makePreviewImpulseResponse(duration, decay){
+  const rate = previewCtx.sampleRate;
+  const length = Math.floor(rate * duration);
+  const impulse = previewCtx.createBuffer(2, length, rate);
+  for(let ch = 0; ch < 2; ch++){
+    const data = impulse.getChannelData(ch);
+    for(let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+  }
+  return impulse;
+}
+const previewConvolver = previewCtx.createConvolver();
+previewConvolver.buffer = makePreviewImpulseResponse(2.5, 3);
+const previewReverbWet = previewCtx.createGain(); previewReverbWet.gain.value = 0;
+
+const previewMasterGain = previewCtx.createGain();
 const previewAnalyser = previewCtx.createAnalyser();
 previewAnalyser.fftSize = 64;
-previewSource.connect(previewAnalyser);
-previewAnalyser.connect(previewCtx.destination);
 const previewVizData = new Uint8Array(previewAnalyser.frequencyBinCount);
+
+previewSource.connect(previewBassFilter);
+previewBassFilter.connect(previewTrebleFilter);
+previewTrebleFilter.connect(previewFilterNode);
+previewFilterNode.connect(previewMasterGain); // dry
+previewFilterNode.connect(previewDelayNode);
+previewDelayNode.connect(previewDelayFeedback); previewDelayFeedback.connect(previewDelayNode);
+previewDelayNode.connect(previewDelayWet); previewDelayWet.connect(previewMasterGain);
+previewFilterNode.connect(previewConvolver);
+previewConvolver.connect(previewReverbWet); previewReverbWet.connect(previewMasterGain);
+previewMasterGain.connect(previewAnalyser);
+previewAnalyser.connect(previewCtx.destination);
+
+function applyPreviewFilter(val){
+  const label = document.getElementById('previewFilterLabel');
+  if(val === 0){
+    previewFilterNode.type = 'allpass'; previewFilterNode.frequency.value = 1000; label.textContent = 'Off';
+  } else if(val < 0){
+    previewFilterNode.type = 'lowpass';
+    previewFilterNode.frequency.value = 200 + ((100 + val) / 100) * 19800;
+    label.textContent = 'LP ' + Math.abs(val) + '%';
+  } else {
+    previewFilterNode.type = 'highpass';
+    previewFilterNode.frequency.value = 20 + (val / 100) * 4000;
+    label.textContent = 'HP ' + val + '%';
+  }
+}
+
+function applyPreviewFxSettings(s){
+  document.getElementById('previewBass').value = s.bass;
+  previewBassFilter.gain.value = s.bass;
+  document.getElementById('previewBassLabel').textContent = (s.bass > 0 ? '+' : '') + s.bass + 'dB';
+
+  document.getElementById('previewTreble').value = s.treble;
+  previewTrebleFilter.gain.value = s.treble;
+  document.getElementById('previewTrebleLabel').textContent = (s.treble > 0 ? '+' : '') + s.treble + 'dB';
+
+  document.getElementById('previewFilter').value = s.filter;
+  applyPreviewFilter(s.filter);
+
+  document.getElementById('previewEcho').value = s.echo;
+  previewDelayWet.gain.value = (s.echo / 100) * 0.5;
+  document.getElementById('previewEchoLabel').textContent = s.echo === 0 ? 'Off' : s.echo + '%';
+
+  document.getElementById('previewReverb').value = s.reverb;
+  previewReverbWet.gain.value = (s.reverb / 100) * 0.6;
+  document.getElementById('previewReverbLabel').textContent = s.reverb === 0 ? 'Off' : s.reverb + '%';
+}
+
+function saveCurrentPreviewFx(){
+  if(previewTrackId == null) return;
+  trackFxSettings[fxKey(previewTrackDeck, previewTrackId)] = {
+    bass: Number(document.getElementById('previewBass').value),
+    treble: Number(document.getElementById('previewTreble').value),
+    filter: Number(document.getElementById('previewFilter').value),
+    echo: Number(document.getElementById('previewEcho').value),
+    reverb: Number(document.getElementById('previewReverb').value)
+  };
+}
+
+['previewBass', 'previewTreble', 'previewFilter', 'previewEcho', 'previewReverb'].forEach(id => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    if(id === 'previewBass'){ previewBassFilter.gain.value = v; document.getElementById('previewBassLabel').textContent = (v > 0 ? '+' : '') + v + 'dB'; }
+    else if(id === 'previewTreble'){ previewTrebleFilter.gain.value = v; document.getElementById('previewTrebleLabel').textContent = (v > 0 ? '+' : '') + v + 'dB'; }
+    else if(id === 'previewFilter'){ applyPreviewFilter(v); }
+    else if(id === 'previewEcho'){ previewDelayWet.gain.value = (v / 100) * 0.5; document.getElementById('previewEchoLabel').textContent = v === 0 ? 'Off' : v + '%'; }
+    else if(id === 'previewReverb'){ previewReverbWet.gain.value = (v / 100) * 0.6; document.getElementById('previewReverbLabel').textContent = v === 0 ? 'Off' : v + '%'; }
+    saveCurrentPreviewFx();
+  });
+});
+
+function applyDeckFxSettings(deck, s){
+  const d = decks[deck];
+  document.getElementById('bass-' + deck).value = s.bass;
+  d.bassFilter.gain.value = s.bass;
+  document.getElementById('bassLabel-' + deck).textContent = (s.bass > 0 ? '+' : '') + s.bass + 'dB';
+
+  document.getElementById('treble-' + deck).value = s.treble;
+  d.trebleFilter.gain.value = s.treble;
+  document.getElementById('trebleLabel-' + deck).textContent = (s.treble > 0 ? '+' : '') + s.treble + 'dB';
+
+  document.getElementById('filter-' + deck).value = s.filter;
+  applyFilter(deck, s.filter);
+
+  document.getElementById('echo-' + deck).value = s.echo;
+  d.delayWet.gain.value = (s.echo / 100) * 0.5;
+  document.getElementById('echoLabel-' + deck).textContent = s.echo === 0 ? 'Off' : s.echo + '%';
+
+  document.getElementById('reverb-' + deck).value = s.reverb;
+  d.reverbWet.gain.value = (s.reverb / 100) * 0.6;
+  document.getElementById('reverbLabel-' + deck).textContent = s.reverb === 0 ? 'Off' : s.reverb + '%';
+}
 
 async function previewTrack(track, deck){
   if(previewAudio.dataset.blobUrl) URL.revokeObjectURL(previewAudio.dataset.blobUrl);
@@ -972,6 +1138,7 @@ async function previewTrack(track, deck){
   previewTrackId = track.id;
   previewTrackDeck = deck;
   document.getElementById('previewNowPlaying').textContent = '🎧 ' + track.name;
+  applyPreviewFxSettings(trackFxSettings[fxKey(deck, track.id)] || { bass: 0, treble: 0, filter: 0, echo: 0, reverb: 0 });
 }
 
 function drawPreviewViz(){
