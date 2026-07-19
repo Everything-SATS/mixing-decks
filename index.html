@@ -332,9 +332,10 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
     </div>
     <div class="slider-row" style="margin-top:14px;text-align:left">
       <span class="lbl">🔊 Volume</span>
-      <input type="range" id="masterVolume" min="0" max="100" value="100">
+      <input type="range" id="masterVolume" min="0" max="500" value="100">
       <b id="masterVolumeLabel">100%</b>
     </div>
+    <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:-4px;margin-bottom:4px;text-align:left">Past 100% a limiter kicks in automatically to stop the boost from distorting.</div>
     <div class="tempo-match-row">
       <button class="btn" id="matchTempoBtn">🔄 Sync Deck B to Deck A</button>
       <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:6px" id="syncHint">BPM is detected automatically once a track loads (tap tempo still works too) — this matches Deck B's speed and beat position to Deck A.</div>
@@ -399,11 +400,21 @@ async function deleteTrack(deck, id){
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const masterGain = audioCtx.createGain();
 masterGain.gain.value = 1;
-masterGain.connect(audioCtx.destination);
 
-// Also tap the master bus to a MediaStreamDestination so the exact mix (both decks, crossfader, FX) can be recorded.
+// A brickwall-style limiter sits after the volume boost so pushing past 100% gets louder without
+// harsh digital clipping - the same job a hardware limiter does at the end of a real mixer's signal chain.
+const masterLimiter = audioCtx.createDynamicsCompressor();
+masterLimiter.threshold.value = -3;
+masterLimiter.knee.value = 0;
+masterLimiter.ratio.value = 20;
+masterLimiter.attack.value = 0.001;
+masterLimiter.release.value = 0.1;
+masterGain.connect(masterLimiter);
+masterLimiter.connect(audioCtx.destination);
+
+// Also tap the master bus (post-limiter) to a MediaStreamDestination so recordings match what you actually hear.
 const mediaStreamDest = audioCtx.createMediaStreamDestination();
-masterGain.connect(mediaStreamDest);
+masterLimiter.connect(mediaStreamDest);
 
 // One shared synthetic impulse response (exponentially-decaying noise) powers both decks' reverb - no external IR file needed.
 function makeImpulseResponse(duration, decay){
