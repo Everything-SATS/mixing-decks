@@ -236,6 +236,7 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn accent" id="playBtn-A">▶ Play</button>
         <button class="btn small" id="tapBtn-A">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-A" style="cursor:default">-- BPM</span>
+        <button class="btn small" id="autoPlayBtn-A" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
       </div>
       <div class="cue-row" id="cueRow-A">
         <button class="btn small cue-btn" data-cue="0" data-deck="A">Cue 1</button>
@@ -330,6 +331,7 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn accent" id="playBtn-B">▶ Play</button>
         <button class="btn small" id="tapBtn-B">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-B" style="cursor:default">-- BPM</span>
+        <button class="btn small" id="autoPlayBtn-B" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
       </div>
       <div class="cue-row" id="cueRow-B">
         <button class="btn small cue-btn" data-cue="0" data-deck="B">Cue 1</button>
@@ -416,6 +418,19 @@ input[type="range"]::-webkit-slider-thumb {
       <button class="btn small" id="previewPauseBtn">⏸ Pause</button>
       <button class="btn small" id="previewStopBtn">⏹ Stop</button>
     </div>
+    <div class="cue-row" id="previewCueRow">
+      <button class="btn small preview-cue-btn" data-cue="0">Cue 1</button>
+      <button class="btn small preview-cue-btn" data-cue="1">Cue 2</button>
+      <button class="btn small preview-cue-btn" data-cue="2">Cue 3</button>
+      <button class="btn small preview-cue-btn" data-cue="3">Cue 4</button>
+      <button class="btn small" id="previewCueClear" title="Clear all hot cues">Clear cues</button>
+    </div>
+    <div class="slider-row" style="margin-top:8px">
+      <span class="lbl">🎧 Vol</span>
+      <input type="range" id="previewVolume" min="0" max="100" value="100">
+      <b id="previewVolumeLabel">100%</b>
+    </div>
+    <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:-2px;margin-bottom:6px;text-align:left">If this track is also loaded on a deck, cues and position here update that deck live.</div>
     <div class="fx-section">
       <div class="fx-title">Mix here, then load onto a deck — these carry over automatically</div>
       <div class="knob-grid" style="grid-template-columns:repeat(5, 1fr)">
@@ -583,8 +598,17 @@ function makeDeck(deck){
     currentTrackId: null, currentUrl: null,
     loopStart: null, loopEnd: null, loopOn: false,
     tapTimes: [], bpm: null, bpmAuto: false,
-    cues: [null, null, null, null], waveformPeaks: null
+    cues: [null, null, null, null], waveformPeaks: null, autoPlay: false
   };
+}
+
+async function playNextTrack(deck){
+  const d = decks[deck];
+  const tracks = await getAllTracks(deck);
+  if(!tracks.length) return;
+  const idx = tracks.findIndex(t => t.id === d.currentTrackId);
+  const nextTrack = tracks[(idx + 1) % tracks.length];
+  loadTrack(deck, nextTrack);
 }
 
 const decks = { A: makeDeck('A'), B: makeDeck('B') };
@@ -773,7 +797,13 @@ function loadTrack(deck, track){
   renderTrackList(deck);
 
   const fxKeyForTrack = fxKey(deck, track.id);
-  if(trackFxSettings[fxKeyForTrack]) applyDeckFxSettings(deck, trackFxSettings[fxKeyForTrack]);
+  if(trackFxSettings[fxKeyForTrack]){
+    applyDeckFxSettings(deck, trackFxSettings[fxKeyForTrack]);
+    if(trackFxSettings[fxKeyForTrack].cues){
+      d.cues = trackFxSettings[fxKeyForTrack].cues.slice();
+      renderCues(deck);
+    }
+  }
 
   const loadId = track.id;
   track.blob.arrayBuffer()
@@ -872,6 +902,18 @@ function renderCues(deck){
     btn.textContent = set ? ('Cue ' + (idx + 1) + ' · ' + fmtTime(d.cues[idx])) : ('Cue ' + (idx + 1));
   });
 }
+function saveDeckCues(deck){
+  const d = decks[deck];
+  if(d.currentTrackId == null) return;
+  const key = fxKey(deck, d.currentTrackId);
+  if(!trackFxSettings[key]) trackFxSettings[key] = { bass: 0, treble: 0, filter: 0, echo: 0, reverb: 0 };
+  trackFxSettings[key].cues = d.cues.slice();
+  if(previewTrackDeck === deck && previewTrackId === d.currentTrackId){
+    previewCues = d.cues.slice();
+    renderPreviewCues();
+  }
+}
+
 document.querySelectorAll('.cue-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const deck = btn.dataset.deck;
@@ -885,12 +927,14 @@ document.querySelectorAll('.cue-btn').forEach(btn => {
       if(d.audio.paused) d.audio.play();
     }
     renderCues(deck);
+    saveDeckCues(deck);
   });
 });
 ['A', 'B'].forEach(deck => {
   document.getElementById('cueClear-' + deck).addEventListener('click', () => {
     decks[deck].cues = [null, null, null, null];
     renderCues(deck);
+    saveDeckCues(deck);
   });
 });
 
@@ -949,18 +993,27 @@ function applyFilter(deck, val){
 
   d.audio.addEventListener('loadedmetadata', () => {
     document.getElementById('seek-' + deck).max = d.audio.duration;
-    document.getElementById('durTime-' + deck).textContent = fmtTime(d.audio.duration);
+    document.getElementById('durTime-' + deck).textContent = '-' + fmtTime(d.audio.duration);
   });
   d.audio.addEventListener('timeupdate', () => {
     document.getElementById('seek-' + deck).value = d.audio.currentTime;
     document.getElementById('curTime-' + deck).textContent = fmtTime(d.audio.currentTime);
+    document.getElementById('durTime-' + deck).textContent = '-' + fmtTime((d.audio.duration || 0) - d.audio.currentTime);
     if(d.loopOn && d.loopEnd != null && d.audio.currentTime >= d.loopEnd){
       d.audio.currentTime = d.loopStart || 0;
     }
   });
   d.audio.addEventListener('play', () => { document.getElementById('playBtn-' + deck).textContent = '⏸ Pause'; if(audioCtx.state === 'suspended') audioCtx.resume(); });
   d.audio.addEventListener('pause', () => { document.getElementById('playBtn-' + deck).textContent = '▶ Play'; });
-  d.audio.addEventListener('ended', () => { document.getElementById('playBtn-' + deck).textContent = '▶ Play'; });
+  d.audio.addEventListener('ended', () => {
+    document.getElementById('playBtn-' + deck).textContent = '▶ Play';
+    if(d.autoPlay) playNextTrack(deck);
+  });
+  document.getElementById('autoPlayBtn-' + deck).addEventListener('click', (e) => {
+    d.autoPlay = !d.autoPlay;
+    e.target.textContent = d.autoPlay ? '🔁 Auto-Play: On' : '🔁 Auto-Play: Off';
+    e.target.classList.toggle('accent', d.autoPlay);
+  });
 
   document.getElementById('seek-' + deck).addEventListener('input', (e) => { d.audio.currentTime = Number(e.target.value); });
   document.getElementById('playBtn-' + deck).addEventListener('click', () => {
@@ -1047,8 +1100,17 @@ function updateLoopLabel(deck){
 const previewAudio = document.getElementById('previewAudio');
 let previewTrackId = null;
 let previewTrackDeck = null;
+let previewCues = [null, null, null, null];
 
-// Per-track mix settings (bass/treble/filter/echo/reverb) prepped in Preview, keyed by "deck:trackId"
+// If the track currently in Preview is also the live track on a deck, Preview acts as a remote for
+// it - seeking or setting cues in Preview updates that deck immediately, not just the saved prep.
+function mirrorToDeckIfLive(action){
+  if(previewTrackDeck != null && decks[previewTrackDeck] && decks[previewTrackDeck].currentTrackId === previewTrackId){
+    action(previewTrackDeck);
+  }
+}
+
+// Per-track mix settings (bass/treble/filter/echo/reverb/cues) prepped in Preview, keyed by "deck:trackId"
 // so they carry over automatically the moment that exact track gets loaded onto that deck.
 const trackFxSettings = {};
 function fxKey(deck, id){ return deck + ':' + id; }
@@ -1164,8 +1226,59 @@ async function previewTrack(track, deck){
   previewTrackId = track.id;
   previewTrackDeck = deck;
   document.getElementById('previewNowPlaying').textContent = '🎧 ' + track.name;
-  applyPreviewFxSettings(trackFxSettings[fxKey(deck, track.id)] || { bass: 0, treble: 0, filter: 0, echo: 0, reverb: 0 });
+  const stored = trackFxSettings[fxKey(deck, track.id)];
+  applyPreviewFxSettings(stored || { bass: 0, treble: 0, filter: 0, echo: 0, reverb: 0 });
+  previewCues = (stored && stored.cues) ? stored.cues.slice() : [null, null, null, null];
+  renderPreviewCues();
 }
+
+function renderPreviewCues(){
+  document.querySelectorAll('.preview-cue-btn').forEach(btn => {
+    const idx = Number(btn.dataset.cue);
+    const set = previewCues[idx] != null;
+    btn.classList.toggle('set', set);
+    btn.textContent = set ? ('Cue ' + (idx + 1) + ' · ' + fmtTime(previewCues[idx])) : ('Cue ' + (idx + 1));
+  });
+}
+
+function savePreviewCues(){
+  if(previewTrackId == null) return;
+  const key = fxKey(previewTrackDeck, previewTrackId);
+  if(!trackFxSettings[key]) trackFxSettings[key] = { bass: 0, treble: 0, filter: 0, echo: 0, reverb: 0 };
+  trackFxSettings[key].cues = previewCues.slice();
+  mirrorToDeckIfLive(deck => {
+    decks[deck].cues = previewCues.slice();
+    renderCues(deck);
+  });
+}
+
+document.querySelectorAll('.preview-cue-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const idx = Number(btn.dataset.cue);
+    if(previewTrackId == null) return;
+    if(previewCues[idx] == null){
+      previewCues[idx] = previewAudio.currentTime;
+    } else {
+      previewAudio.currentTime = previewCues[idx];
+      mirrorToDeckIfLive(deck => { decks[deck].audio.currentTime = previewCues[idx]; });
+      if(previewAudio.paused) previewAudio.play();
+    }
+    savePreviewCues();
+    renderPreviewCues();
+  });
+});
+document.getElementById('previewCueClear').addEventListener('click', () => {
+  previewCues = [null, null, null, null];
+  savePreviewCues();
+  renderPreviewCues();
+});
+
+const previewVolumeEl = document.getElementById('previewVolume');
+previewVolumeEl.addEventListener('input', (e) => {
+  const pct = Number(e.target.value);
+  previewMasterGain.gain.value = pct / 100;
+  document.getElementById('previewVolumeLabel').textContent = pct + '%';
+});
 
 function drawPreviewViz(){
   const canvas = document.getElementById('previewViz');
@@ -1206,6 +1319,8 @@ function clearPreview(){
   document.getElementById('previewDurTime').textContent = '0:00';
   document.getElementById('previewPlayBtn').classList.remove('accent');
   document.getElementById('previewPauseBtn').classList.remove('accent');
+  previewCues = [null, null, null, null];
+  renderPreviewCues();
 }
 
 previewAudio.addEventListener('play', () => {
@@ -1218,13 +1333,18 @@ previewAudio.addEventListener('pause', () => {
 });
 previewAudio.addEventListener('loadedmetadata', () => {
   document.getElementById('previewSeek').max = previewAudio.duration;
-  document.getElementById('previewDurTime').textContent = fmtTime(previewAudio.duration);
+  document.getElementById('previewDurTime').textContent = '-' + fmtTime(previewAudio.duration);
 });
 previewAudio.addEventListener('timeupdate', () => {
   document.getElementById('previewSeek').value = previewAudio.currentTime;
   document.getElementById('previewCurTime').textContent = fmtTime(previewAudio.currentTime);
+  document.getElementById('previewDurTime').textContent = '-' + fmtTime((previewAudio.duration || 0) - previewAudio.currentTime);
 });
-document.getElementById('previewSeek').addEventListener('input', (e) => { previewAudio.currentTime = Number(e.target.value); });
+document.getElementById('previewSeek').addEventListener('input', (e) => {
+  const t = Number(e.target.value);
+  previewAudio.currentTime = t;
+  mirrorToDeckIfLive(deck => { decks[deck].audio.currentTime = t; });
+});
 document.getElementById('previewPlayBtn').addEventListener('click', async () => {
   if(!previewAudio.src) return;
   if(previewCtx.state === 'suspended') await previewCtx.resume();
