@@ -83,13 +83,15 @@ header p { color: var(--ink-soft); font-size: 0.72rem; max-width: 560px; margin:
 .knob-step:hover { color: var(--ink); border-color: var(--deck-accent, var(--ink-soft)); }
 .knob-step:active { background: var(--deck-accent, var(--surface-2)); color: #08080a; }
 
-/* ---------- Beat pulse: flashes on every detected beat so two decks' timing can be compared visually ---------- */
-.beat-pulse { width: 15px; height: 15px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line); flex-shrink: 0; }
-@keyframes beatPulseAnim {
-  0% { transform: scale(1.5); background: var(--deck-accent); border-color: var(--deck-accent); box-shadow: 0 0 14px 4px var(--deck-accent); }
-  100% { transform: scale(1); background: var(--surface-2); border-color: var(--line); box-shadow: none; }
-}
-.beat-pulse.hit { animation: beatPulseAnim 0.3s ease-out; }
+/* ---------- Beat ladder: a 6-LED column per deck that sweeps bottom-to-top across each beat cycle,
+   flanking the master fader so two decks' timing can be compared visually at a glance. ---------- */
+.master-row { display: flex; gap: 10px; justify-content: center; align-items: flex-end; }
+.beat-ladder-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.beat-ladder-col .bl-label { font-size: 0.6rem; font-weight: 800; color: var(--ink-soft); }
+.beat-ladder { display: flex; flex-direction: column-reverse; gap: 4px; }
+.beat-ladder .led { width: 26px; height: 20px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--line); }
+.beat-ladder .led.lit.a { background: var(--accentA); border-color: var(--accentA); box-shadow: 0 0 7px 1px var(--accentA); }
+.beat-ladder .led.lit.b { background: var(--accentB); border-color: var(--accentB); box-shadow: 0 0 7px 1px var(--accentB); }
 
 .deck {
   background: var(--surface); border-radius: 16px; padding: 14px;
@@ -242,10 +244,11 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
       <div class="deck-controls">
         <button class="btn accent" id="playBtn-A">▶ Play</button>
-        <div class="beat-pulse" id="beatPulse-A" title="Flashes on every beat"></div>
         <button class="btn small" id="tapBtn-A">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-A" style="cursor:default">-- BPM</span>
         <button class="btn small" id="autoPlayBtn-A" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
+        <button class="btn small" id="nudgeDown-A" title="Hold to briefly slow down and nudge the beat back">⏪ Nudge</button>
+        <button class="btn small" id="nudgeUp-A" title="Hold to briefly speed up and nudge the beat forward">Nudge ⏩</button>
       </div>
       <div class="cue-row" id="cueRow-A">
         <button class="btn small cue-btn" data-cue="0" data-deck="A">Cue 1</button>
@@ -306,8 +309,24 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="center-console">
       <div class="cc-label">Master</div>
       <b id="masterVolumeLabel">75%</b>
-      <div class="vfader-wrap">
-        <input type="range" id="masterVolume" min="0" max="100" value="75">
+      <div class="master-row">
+        <div class="beat-ladder-col">
+          <div class="beat-ladder" id="beatLadder-A">
+            <div class="led"></div><div class="led"></div><div class="led"></div>
+            <div class="led"></div><div class="led"></div><div class="led"></div>
+          </div>
+          <span class="bl-label">A</span>
+        </div>
+        <div class="vfader-wrap">
+          <input type="range" id="masterVolume" min="0" max="100" value="75">
+        </div>
+        <div class="beat-ladder-col">
+          <div class="beat-ladder" id="beatLadder-B">
+            <div class="led"></div><div class="led"></div><div class="led"></div>
+            <div class="led"></div><div class="led"></div><div class="led"></div>
+          </div>
+          <span class="bl-label">B</span>
+        </div>
       </div>
       <div class="limiter-note">100% is the safe maximum — limiter still guards against distortion at the top</div>
       <div class="cc-label">Crossfader</div>
@@ -338,10 +357,11 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
       <div class="deck-controls">
         <button class="btn accent" id="playBtn-B">▶ Play</button>
-        <div class="beat-pulse" id="beatPulse-B" title="Flashes on every beat"></div>
         <button class="btn small" id="tapBtn-B">👆 Tap Tempo</button>
         <span class="btn small" id="bpmLabel-B" style="cursor:default">-- BPM</span>
         <button class="btn small" id="autoPlayBtn-B" title="Automatically play the next track in the list when this one ends">🔁 Auto-Play: Off</button>
+        <button class="btn small" id="nudgeDown-B" title="Hold to briefly slow down and nudge the beat back">⏪ Nudge</button>
+        <button class="btn small" id="nudgeUp-B" title="Hold to briefly speed up and nudge the beat forward">Nudge ⏩</button>
       </div>
       <div class="cue-row" id="cueRow-B">
         <button class="btn small cue-btn" data-cue="0" data-deck="B">Cue 1</button>
@@ -437,8 +457,8 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
     <div class="slider-row" style="margin-top:8px">
       <span class="lbl">🎧 Vol</span>
-      <input type="range" id="previewVolume" min="0" max="100" value="100">
-      <b id="previewVolumeLabel">100%</b>
+      <input type="range" id="previewVolume" min="0" max="100" value="20">
+      <b id="previewVolumeLabel">20%</b>
     </div>
     <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:-2px;margin-bottom:6px;text-align:left">If this track is also loaded on a deck, cues and position here update that deck live.</div>
     <div class="fx-section">
@@ -509,7 +529,7 @@ async function getAllTracks(deck){
   return new Promise((resolve, reject) => {
     const tx = db.transaction('tracks', 'readonly');
     const req = tx.objectStore('tracks').getAll();
-    req.onsuccess = () => resolve((req.result || []).sort((a,b) => b.addedAt - a.addedAt));
+    req.onsuccess = () => resolve((req.result || []).sort((a,b) => a.addedAt - b.addedAt));
     req.onerror = () => reject(req.error);
   });
 }
@@ -900,19 +920,25 @@ function drawWaveform(deck){
   }
 }
 
-const lastBeatIndex = { A: -1, B: -1 };
+const beatLadderLeds = {
+  A: document.querySelectorAll('#beatLadder-A .led'),
+  B: document.querySelectorAll('#beatLadder-B .led')
+};
 function updateBeatPulse(deck){
   const d = decks[deck];
-  const dot = document.getElementById('beatPulse-' + deck);
-  if(!d.bpm || d.audio.paused || !d.currentTrackId) return;
-  const beatSec = 60 / d.bpm;
-  const beatIndex = Math.floor(d.audio.currentTime / beatSec);
-  if(beatIndex !== lastBeatIndex[deck]){
-    lastBeatIndex[deck] = beatIndex;
-    dot.classList.remove('hit');
-    void dot.offsetWidth;
-    dot.classList.add('hit');
+  const leds = beatLadderLeds[deck];
+  if(!d.bpm || d.audio.paused || !d.currentTrackId){
+    leds.forEach(l => l.classList.remove('lit', 'a', 'b'));
+    return;
   }
+  const beatSec = 60 / d.bpm;
+  const phase = (d.audio.currentTime % beatSec) / beatSec; // 0..1 progress through the current beat
+  const litIndex = Math.min(5, Math.floor(phase * 6));
+  leds.forEach((l, i) => {
+    const on = i === litIndex;
+    l.classList.toggle('lit', on);
+    l.classList.toggle(deck === 'A' ? 'a' : 'b', on);
+  });
 }
 
 (function waveformLoop(){
@@ -1023,10 +1049,10 @@ function applyFilter(deck, val){
   document.getElementById('fileInput-' + deck).addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    const id = await addTrack(deck, file.name, file);
-    const tracks = await getAllTracks(deck);
-    const t = tracks.find(x => x.id === id);
-    if(t) loadTrack(deck, t);
+    // Just adds it to the library at the bottom of the list - doesn't touch whatever's already
+    // loaded/playing on the deck. Tap it in the list when you're ready to load it.
+    await addTrack(deck, file.name, file);
+    renderTrackList(deck);
     e.target.value = '';
   });
 
@@ -1052,6 +1078,26 @@ function applyFilter(deck, val){
     d.autoPlay = !d.autoPlay;
     e.target.textContent = d.autoPlay ? '🔁 Auto-Play: On' : '🔁 Auto-Play: Off';
     e.target.classList.toggle('accent', d.autoPlay);
+  });
+
+  // Nudge: hold to briefly bend the pitch (without touching the Speed knob's set value), release to
+  // snap back - the manual "walk the beat into place" technique real DJs use to fine-tune phase.
+  const NUDGE_AMOUNT = 0.06;
+  function nudgeStart(dir){
+    const baseRate = Number(document.getElementById('speed-' + deck).value) / 100;
+    d.audio.playbackRate = baseRate * (1 + dir * NUDGE_AMOUNT);
+  }
+  function nudgeRelease(){
+    const baseRate = Number(document.getElementById('speed-' + deck).value) / 100;
+    d.audio.playbackRate = baseRate;
+  }
+  const nudgeDownBtn = document.getElementById('nudgeDown-' + deck);
+  const nudgeUpBtn = document.getElementById('nudgeUp-' + deck);
+  nudgeDownBtn.addEventListener('pointerdown', () => nudgeStart(-1));
+  nudgeUpBtn.addEventListener('pointerdown', () => nudgeStart(1));
+  [nudgeDownBtn, nudgeUpBtn].forEach(btn => {
+    btn.addEventListener('pointerup', nudgeRelease);
+    btn.addEventListener('pointerleave', nudgeRelease);
   });
 
   document.getElementById('seek-' + deck).addEventListener('input', (e) => { d.audio.currentTime = Number(e.target.value); });
@@ -1265,6 +1311,8 @@ async function previewTrack(track, deck){
   previewTrackId = track.id;
   previewTrackDeck = deck;
   document.getElementById('previewNowPlaying').textContent = '🎧 ' + track.name;
+  document.getElementById('previewVolume').value = 20;
+  document.getElementById('previewVolume').dispatchEvent(new Event('input'));
   const stored = trackFxSettings[fxKey(deck, track.id)];
   applyPreviewFxSettings(stored || { bass: 0, treble: 0, filter: 0, echo: 0, reverb: 0 });
   previewCues = (stored && stored.cues) ? stored.cues.slice() : [null, null, null, null];
