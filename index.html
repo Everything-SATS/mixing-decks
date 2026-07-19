@@ -64,18 +64,20 @@ header p { color: var(--ink-soft); font-size: 0.72rem; max-width: 560px; margin:
 .center-console .btn { width: 100%; }
 .limiter-note { font-size: 0.62rem; color: var(--ink-soft); line-height: 1.3; }
 
-/* ---------- Round knobs: replace stacked sliders so Speed/Bass/Treble/Filter/Echo/Reverb fit compactly ---------- */
-.knob-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px 6px; margin-top: 10px; }
-@media (max-width: 560px) { .knob-grid { grid-template-columns: repeat(3, 1fr); } }
-.knob-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.knob-cell .klabel { font-size: 0.64rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
-.knob { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line);
-  position: relative; cursor: ns-resize; touch-action: none; box-shadow: inset 0 2px 5px rgba(0,0,0,0.35); }
-.knob::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.03); pointer-events: none; }
-.knob .knob-dial { position: absolute; top: 4px; left: 50%; width: 3px; height: 38%; background: var(--deck-accent, var(--ink));
-  border-radius: 2px; transform-origin: 50% 130%; box-shadow: 0 0 5px 1px var(--deck-accent, rgba(242,241,238,0.4)); pointer-events: none; }
-.knob-cell .kvalue { font-size: 0.66rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
-.knob-cell input[type="range"] { display: none; }
+/* ---------- Vertical faders: real mixing-console channel-strip style. Middle = default (100% speed,
+   0dB, filter off), up = more/faster, down = less/slower - matches physical fader convention. ---------- */
+.fader-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px 4px; margin-top: 10px; }
+@media (max-width: 560px) { .fader-grid { grid-template-columns: repeat(3, 1fr); } }
+.fader-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.fader-cell .klabel { font-size: 0.62rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+.fader-cell .kvalue { font-size: 0.64rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.vslider-wrap { height: 96px; width: 26px; display: flex; align-items: center; justify-content: center; position: relative; margin: 2px 0; }
+.vslider-wrap::before {
+  content: ''; position: absolute; left: 50%; top: 4px; bottom: 4px; width: 16px; margin-left: -8px;
+  background-image: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent 11px);
+  opacity: 0.6; pointer-events: none;
+}
+input[type="range"].vslider { -webkit-appearance: slider-vertical; appearance: slider-vertical; width: 20px; height: 96px; padding: 0; background: transparent; }
 .knob-btn-row { display: flex; align-items: center; gap: 4px; }
 .knob-step { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2);
   color: var(--ink-soft); font-size: 0.8rem; font-weight: 800; line-height: 1; cursor: pointer; padding: 0;
@@ -179,6 +181,18 @@ input[type="range"]::-webkit-slider-thumb {
 #crossfader::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--accentA), var(--accentB)); border: none; }
 #crossfader::-webkit-slider-thumb { background: #fff; box-shadow: 0 0 10px 2px rgba(255,255,255,0.7), 0 0 0 3px var(--bg); }
 #masterVolume::-webkit-slider-thumb { background: var(--ink); box-shadow: 0 0 9px 2px rgba(242,241,238,0.5), 0 0 0 3px var(--bg); }
+
+/* Vertical faders get a real rectangular fader-cap thumb instead of the round dot, like a physical mixer.
+   (.deck prefix added purely to out-specificity the earlier .deck.deckB round-thumb rule above.) */
+.deck input[type="range"].vslider::-webkit-slider-runnable-track,
+input[type="range"].vslider::-webkit-slider-runnable-track { width: 5px; background: var(--surface-2); border: 1px solid var(--line); }
+.deck input[type="range"].vslider::-webkit-slider-thumb,
+input[type="range"].vslider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 30px; height: 14px; border-radius: 3px; margin-left: 0;
+  background: linear-gradient(180deg, #f2f1ee, #c9c8c4) !important; border: 1px solid rgba(0,0,0,0.35);
+  box-shadow: 0 0 8px 1px var(--accentA), 0 1px 2px rgba(0,0,0,0.4);
+}
+.deck.deckB input[type="range"].vslider::-webkit-slider-thumb { box-shadow: 0 0 8px 1px var(--accentB), 0 1px 2px rgba(0,0,0,0.4) !important; }
 
 .footer-note { text-align: center; color: var(--ink-soft); font-size: 0.76rem; margin-top: 30px; line-height: 1.7; }
 
@@ -287,41 +301,35 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small" data-quickloop="8" data-deck="A">🔂 8 beats</button>
         <button class="btn small" data-quickloop="16" data-deck="A">🔂 16 beats</button>
       </div>
-      <div class="knob-grid">
-        <div class="knob-cell">
+      <div class="fader-grid">
+        <div class="fader-cell">
           <span class="klabel">Speed</span>
-          <div class="knob" data-knob="speed-A"><div class="knob-dial"></div></div>
-          <input type="range" id="speed-A" min="50" max="150" value="100">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="speed-A" min="50" max="150" value="100"></div>
           <b class="kvalue" id="speedLabel-A">100%</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Bass</span>
-          <div class="knob" data-knob="bass-A"><div class="knob-dial"></div></div>
-          <input type="range" id="bass-A" min="-20" max="20" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="bass-A" min="-20" max="20" value="0"></div>
           <b class="kvalue" id="bassLabel-A">0dB</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Treble</span>
-          <div class="knob" data-knob="treble-A"><div class="knob-dial"></div></div>
-          <input type="range" id="treble-A" min="-20" max="20" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="treble-A" min="-20" max="20" value="0"></div>
           <b class="kvalue" id="trebleLabel-A">0dB</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Filter</span>
-          <div class="knob" data-knob="filter-A"><div class="knob-dial"></div></div>
-          <input type="range" id="filter-A" min="-100" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="filter-A" min="-100" max="100" value="0"></div>
           <b class="kvalue" id="filterLabel-A">Off</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Echo</span>
-          <div class="knob" data-knob="echo-A"><div class="knob-dial"></div></div>
-          <input type="range" id="echo-A" min="0" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="echo-A" min="0" max="100" value="0"></div>
           <b class="kvalue" id="echoLabel-A">Off</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Reverb</span>
-          <div class="knob" data-knob="reverb-A"><div class="knob-dial"></div></div>
-          <input type="range" id="reverb-A" min="0" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="reverb-A" min="0" max="100" value="0"></div>
           <b class="kvalue" id="reverbLabel-A">Off</b>
         </div>
       </div>
@@ -410,41 +418,35 @@ input[type="range"]::-webkit-slider-thumb {
         <button class="btn small" data-quickloop="8" data-deck="B">🔂 8 beats</button>
         <button class="btn small" data-quickloop="16" data-deck="B">🔂 16 beats</button>
       </div>
-      <div class="knob-grid">
-        <div class="knob-cell">
+      <div class="fader-grid">
+        <div class="fader-cell">
           <span class="klabel">Speed</span>
-          <div class="knob" data-knob="speed-B"><div class="knob-dial"></div></div>
-          <input type="range" id="speed-B" min="50" max="150" value="100">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="speed-B" min="50" max="150" value="100"></div>
           <b class="kvalue" id="speedLabel-B">100%</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Bass</span>
-          <div class="knob" data-knob="bass-B"><div class="knob-dial"></div></div>
-          <input type="range" id="bass-B" min="-20" max="20" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="bass-B" min="-20" max="20" value="0"></div>
           <b class="kvalue" id="bassLabel-B">0dB</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Treble</span>
-          <div class="knob" data-knob="treble-B"><div class="knob-dial"></div></div>
-          <input type="range" id="treble-B" min="-20" max="20" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="treble-B" min="-20" max="20" value="0"></div>
           <b class="kvalue" id="trebleLabel-B">0dB</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Filter</span>
-          <div class="knob" data-knob="filter-B"><div class="knob-dial"></div></div>
-          <input type="range" id="filter-B" min="-100" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="filter-B" min="-100" max="100" value="0"></div>
           <b class="kvalue" id="filterLabel-B">Off</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Echo</span>
-          <div class="knob" data-knob="echo-B"><div class="knob-dial"></div></div>
-          <input type="range" id="echo-B" min="0" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="echo-B" min="0" max="100" value="0"></div>
           <b class="kvalue" id="echoLabel-B">Off</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Reverb</span>
-          <div class="knob" data-knob="reverb-B"><div class="knob-dial"></div></div>
-          <input type="range" id="reverb-B" min="0" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="reverb-B" min="0" max="100" value="0"></div>
           <b class="kvalue" id="reverbLabel-B">Off</b>
         </div>
       </div>
@@ -510,35 +512,30 @@ input[type="range"]::-webkit-slider-thumb {
     <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:-2px;margin-bottom:6px;text-align:left">If this track is also loaded on a deck, cues and position here update that deck live.</div>
     <div class="fx-section">
       <div class="fx-title">Mix here, then load onto a deck — these carry over automatically</div>
-      <div class="knob-grid" style="grid-template-columns:repeat(5, 1fr)">
-        <div class="knob-cell">
+      <div class="fader-grid" style="grid-template-columns:repeat(5, 1fr)">
+        <div class="fader-cell">
           <span class="klabel">Bass</span>
-          <div class="knob" data-knob="previewBass"><div class="knob-dial"></div></div>
-          <input type="range" id="previewBass" min="-20" max="20" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="previewBass" min="-20" max="20" value="0"></div>
           <b class="kvalue" id="previewBassLabel">0dB</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Treble</span>
-          <div class="knob" data-knob="previewTreble"><div class="knob-dial"></div></div>
-          <input type="range" id="previewTreble" min="-20" max="20" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="previewTreble" min="-20" max="20" value="0"></div>
           <b class="kvalue" id="previewTrebleLabel">0dB</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Filter</span>
-          <div class="knob" data-knob="previewFilter"><div class="knob-dial"></div></div>
-          <input type="range" id="previewFilter" min="-100" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="previewFilter" min="-100" max="100" value="0"></div>
           <b class="kvalue" id="previewFilterLabel">Off</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Echo</span>
-          <div class="knob" data-knob="previewEcho"><div class="knob-dial"></div></div>
-          <input type="range" id="previewEcho" min="0" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="previewEcho" min="0" max="100" value="0"></div>
           <b class="kvalue" id="previewEchoLabel">Off</b>
         </div>
-        <div class="knob-cell">
+        <div class="fader-cell">
           <span class="klabel">Reverb</span>
-          <div class="knob" data-knob="previewReverb"><div class="knob-dial"></div></div>
-          <input type="range" id="previewReverb" min="0" max="100" value="0">
+          <div class="vslider-wrap"><input type="range" class="vslider" id="previewReverb" min="0" max="100" value="0"></div>
           <b class="kvalue" id="previewReverbLabel">Off</b>
         </div>
       </div>
@@ -1631,10 +1628,14 @@ populateOutputDevices();
 
 // Equal-power crossfade for a smoother blend than plain linear.
 const crossfaderEl = document.getElementById('crossfader');
+// Squared equal-power curve: steeper than plain equal-power, so the "losing" deck actually fades
+// toward silence well before the physical extreme, instead of lingering audible through most of the
+// travel. Still sums to a constant total power at every position, so it stays a smooth blend, not a
+// hard cut - center is a real perceptible dip rather than a silent dead zone.
 function applyCrossfader(){
   const pos = Number(crossfaderEl.value) / 100; // 0 = full A, 1 = full B
-  decks.A.speakerGain.gain.value = Math.cos(pos * Math.PI / 2);
-  decks.B.speakerGain.gain.value = Math.sin(pos * Math.PI / 2);
+  decks.A.speakerGain.gain.value = Math.cos(pos * Math.PI / 2) ** 2;
+  decks.B.speakerGain.gain.value = Math.sin(pos * Math.PI / 2) ** 2;
 }
 crossfaderEl.addEventListener('input', applyCrossfader);
 applyCrossfader();
@@ -1644,8 +1645,8 @@ applyCrossfader();
 const headphoneCrossfaderEl = document.getElementById('headphoneCrossfader');
 function applyHeadphoneCrossfader(){
   const pos = Number(headphoneCrossfaderEl.value) / 100;
-  decks.A.headphoneGain.gain.value = Math.cos(pos * Math.PI / 2);
-  decks.B.headphoneGain.gain.value = Math.sin(pos * Math.PI / 2);
+  decks.A.headphoneGain.gain.value = Math.cos(pos * Math.PI / 2) ** 2;
+  decks.B.headphoneGain.gain.value = Math.sin(pos * Math.PI / 2) ** 2;
 }
 headphoneCrossfaderEl.addEventListener('input', applyHeadphoneCrossfader);
 applyHeadphoneCrossfader();
@@ -1741,66 +1742,46 @@ document.getElementById('recordBtn').addEventListener('click', async () => {
 // ---------- Round knobs: drag up/down to change, +/- buttons for precise nudges. The underlying
 // <input type="range"> stays in the DOM as the real data model - existing 'input' listeners elsewhere
 // keep working untouched, the knob just drives them via .value + a dispatched 'input' event. ----------
-function setupKnob(id, opts){
+// Vertical fader engine: the native <input type=range class=vslider> already handles dragging on its
+// own (min at bottom, max at top), so this just adds +/- nudge buttons above/below it and a
+// double-click reset - no custom drag/rotation math needed like the old round knobs required.
+function setupFader(id, opts){
   const input = document.getElementById(id);
-  const knob = document.querySelector(`.knob[data-knob="${id}"]`);
-  if(!input || !knob) return;
-  const dial = knob.querySelector('.knob-dial');
+  if(!input) return;
+  const wrap = input.closest('.vslider-wrap');
+  if(!wrap) return;
   const min = Number(input.min), max = Number(input.max);
   const step = (opts && opts.step) || 1;
   const resetVal = (opts && opts.reset !== undefined) ? opts.reset : min;
-  const sensitivity = (max - min) / 150;
 
-  const minusBtn = document.createElement('button');
-  minusBtn.className = 'knob-step'; minusBtn.type = 'button'; minusBtn.textContent = '−';
   const plusBtn = document.createElement('button');
   plusBtn.className = 'knob-step'; plusBtn.type = 'button'; plusBtn.textContent = '+';
-  const row = document.createElement('div');
-  row.className = 'knob-btn-row';
-  knob.parentNode.insertBefore(row, knob);
-  row.appendChild(minusBtn); row.appendChild(knob); row.appendChild(plusBtn);
+  const minusBtn = document.createElement('button');
+  minusBtn.className = 'knob-step'; minusBtn.type = 'button'; minusBtn.textContent = '−';
+  wrap.parentNode.insertBefore(plusBtn, wrap);
+  wrap.parentNode.insertBefore(minusBtn, wrap.nextSibling);
 
   function setValue(v){
     v = Math.max(min, Math.min(max, v));
     input.value = v;
     input.dispatchEvent(new Event('input'));
   }
-  function render(){
-    const v = Number(input.value);
-    const angle = -135 + ((v - min) / (max - min)) * 270;
-    dial.style.transform = `translateX(-50%) rotate(${angle}deg)`;
-  }
-  render();
-  input.addEventListener('input', render);
-
-  minusBtn.addEventListener('click', () => setValue(Number(input.value) - step));
   plusBtn.addEventListener('click', () => setValue(Number(input.value) + step));
-
-  let dragging = false, startY = 0, startVal = 0;
-  knob.addEventListener('pointerdown', (e) => {
-    dragging = true; startY = e.clientY; startVal = Number(input.value);
-    knob.setPointerCapture(e.pointerId);
-  });
-  knob.addEventListener('pointermove', (e) => {
-    if(!dragging) return;
-    const delta = startY - e.clientY;
-    setValue(startVal + delta * sensitivity);
-  });
-  knob.addEventListener('pointerup', () => { dragging = false; });
-  knob.addEventListener('dblclick', () => setValue(resetVal));
+  minusBtn.addEventListener('click', () => setValue(Number(input.value) - step));
+  wrap.addEventListener('dblclick', () => setValue(resetVal));
 }
 
 ['A', 'B'].forEach(deck => {
-  setupKnob('speed-' + deck, { step: 1, reset: 100 });
-  setupKnob('bass-' + deck, { step: 1, reset: 0 });
-  setupKnob('treble-' + deck, { step: 1, reset: 0 });
-  setupKnob('filter-' + deck, { step: 5, reset: 0 });
-  setupKnob('echo-' + deck, { step: 5, reset: 0 });
-  setupKnob('reverb-' + deck, { step: 5, reset: 0 });
+  setupFader('speed-' + deck, { step: 1, reset: 100 });
+  setupFader('bass-' + deck, { step: 1, reset: 0 });
+  setupFader('treble-' + deck, { step: 1, reset: 0 });
+  setupFader('filter-' + deck, { step: 5, reset: 0 });
+  setupFader('echo-' + deck, { step: 5, reset: 0 });
+  setupFader('reverb-' + deck, { step: 5, reset: 0 });
 });
 ['previewBass', 'previewTreble', 'previewFilter', 'previewEcho', 'previewReverb'].forEach(id => {
   const step = id === 'previewFilter' || id === 'previewEcho' || id === 'previewReverb' ? 5 : 1;
-  setupKnob(id, { step, reset: 0 });
+  setupFader(id, { step, reset: 0 });
 });
 
 if ("serviceWorker" in navigator) {
