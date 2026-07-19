@@ -36,11 +36,15 @@ body {
   100% { background-position: 0% 0%, 0% 0%, 0% 50%; }
 }
 @media (prefers-reduced-motion: reduce) { body { animation: none; } }
-.wrap { max-width: 1440px; margin: 0 auto; padding: 18px 20px 60px; }
-header { text-align: center; margin-bottom: 16px; }
-header .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
-header h1 { font-size: clamp(1.5rem, 5vw, 2rem); margin: 6px 0; font-weight: 900; }
-header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin: 0 auto; line-height: 1.5; }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 10px 20px 60px; }
+header { text-align: center; margin-bottom: 8px; }
+header .eyebrow { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+header h1 { font-size: clamp(1.15rem, 3vw, 1.45rem); margin: 2px 0 3px; font-weight: 900; }
+header p { color: var(--ink-soft); font-size: 0.72rem; max-width: 560px; margin: 0 auto; line-height: 1.35; }
+
+.deck-header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.deck-header-row h2 { margin: 0; }
+.deck-header-row .btn { flex-shrink: 0; }
 
 .decks-grid { display: grid; grid-template-columns: 1fr 190px 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
 @media (max-width: 900px) { .decks-grid { grid-template-columns: 1fr; } .center-console { order: -1; } }
@@ -153,7 +157,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .footer-note { text-align: center; color: var(--ink-soft); font-size: 0.76rem; margin-top: 30px; line-height: 1.7; }
 
-.help-card { background: var(--surface); border-radius: 16px; padding: 4px 16px; box-shadow: var(--shadow); margin-bottom: 16px; }
+.help-card { background: var(--surface); border-radius: 16px; padding: 4px 16px; box-shadow: var(--shadow); margin-bottom: 10px; }
 .help-card summary { cursor: pointer; padding: 12px 0; font-weight: 800; font-size: 0.9rem; list-style: none; display: flex; align-items: center; gap: 8px; }
 .help-card summary::-webkit-details-marker { display: none; }
 .help-card summary::before { content: '▶'; font-size: 0.6rem; transition: transform 0.15s ease; color: var(--ink-soft); }
@@ -215,9 +219,9 @@ input[type="range"]::-webkit-slider-thumb {
 
   <div class="decks-grid">
     <div class="deck deckA" id="deck-A">
-      <h2>Deck A</h2>
-      <input type="file" id="fileInput-A" accept="audio/*,video/*">
-      <div class="deck-controls">
+      <div class="deck-header-row">
+        <h2>Deck A</h2>
+        <input type="file" id="fileInput-A" accept="audio/*,video/*">
         <button class="btn accent" data-action="add" data-deck="A">➕ Add Track</button>
       </div>
       <div class="track-list" id="trackList-A"></div>
@@ -309,9 +313,9 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
 
     <div class="deck deckB" id="deck-B">
-      <h2>Deck B</h2>
-      <input type="file" id="fileInput-B" accept="audio/*,video/*">
-      <div class="deck-controls">
+      <div class="deck-header-row">
+        <h2>Deck B</h2>
+        <input type="file" id="fileInput-B" accept="audio/*,video/*">
         <button class="btn accent" data-action="add" data-deck="B">➕ Add Track</button>
       </div>
       <div class="track-list" id="trackList-B"></div>
