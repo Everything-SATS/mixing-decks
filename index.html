@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mixing Decks</title>
-<meta name="theme-color" content="#141418">
+<meta name="theme-color" content="#0A0A0C">
 <meta name="description" content="A free two-deck DJ mixer in your browser. Upload your own tracks, crossfade between decks, adjust speed and EQ, tap tempo. Nothing is ever uploaded anywhere.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
@@ -15,54 +15,57 @@
 <meta name="apple-mobile-web-app-title" content="Decks">
 <style>
 :root{
-  --bg:#141418; --surface:#1E1E24; --surface-2:#25252D; --ink:#F2F1EE; --ink-soft:#9C9CA6;
-  --line:#33333D; --accentA:#E8543E; --accentB:#3D7BD9; --good:#4CAF50; --shadow:0 8px 24px rgba(0,0,0,0.4);
-}
-:root[data-theme="light"]{
-  --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F0F0F3; --ink:#17181C; --ink-soft:#6B6D76;
-  --line:#E2E2E8; --accentA:#E8543E; --accentB:#3D7BD9; --good:#2E9E6C; --shadow:0 8px 24px rgba(20,20,30,0.08);
-}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){
-    --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F0F0F3; --ink:#17181C; --ink-soft:#6B6D76;
-    --line:#E2E2E8; --accentA:#E8543E; --accentB:#3D7BD9; --good:#2E9E6C; --shadow:0 8px 24px rgba(20,20,30,0.08);
-  }
+  --bg:#0A0A0C; --surface:#17171A; --surface-2:#1F1F23; --ink:#F2F1EE; --ink-soft:#8C8C93;
+  --line:#2A2A2E; --accentA:#FFB020; --accentB:#22C7B5; --good:#4CAF50;
+  --shadow:0 8px 24px rgba(0,0,0,0.55);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body {
+  background:
+    radial-gradient(circle at 15% -10%, rgba(255,176,32,0.06), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgba(34,199,181,0.06), transparent 45%),
+    var(--bg);
+  color: var(--ink); font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 .wrap { max-width: 900px; margin: 0 auto; padding: 18px 14px 60px; }
 header { text-align: center; margin-bottom: 16px; }
-header .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+header .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
 header h1 { font-size: clamp(1.5rem, 5vw, 2rem); margin: 6px 0; font-weight: 900; }
 header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin: 0 auto; line-height: 1.5; }
 
 .decks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 @media (max-width: 620px) { .decks-grid { grid-template-columns: 1fr; } }
 
-.deck { background: var(--surface); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); border-top: 4px solid var(--deck-accent); }
+.deck {
+  background: var(--surface); border-radius: 16px; padding: 14px;
+  box-shadow: var(--shadow), 0 0 44px -20px var(--deck-accent);
+  border-top: 3px solid var(--deck-accent);
+  border-left: 1px solid rgba(255,255,255,0.04); border-right: 1px solid rgba(255,255,255,0.04);
+}
 .deck.deckA { --deck-accent: var(--accentA); }
 .deck.deckB { --deck-accent: var(--accentB); }
-.deck h2 { margin: 0 0 10px; font-size: 1.05rem; color: var(--deck-accent); }
+.deck h2 { margin: 0 0 10px; font-size: 1.05rem; color: var(--deck-accent); display: flex; align-items: center; gap: 8px; letter-spacing: 0.02em; }
+.deck h2::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--deck-accent); box-shadow: 0 0 9px 2px var(--deck-accent); }
 .deck input[type="file"] { display: none; }
 .deck-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
 .btn { background: var(--surface-2); color: var(--ink); border: 1.5px solid var(--line); padding: 8px 12px;
-  border-radius: 10px; font-weight: 700; font-size: 0.82rem; cursor: pointer; font-family: inherit; }
-.btn.accent { background: var(--deck-accent); border-color: var(--deck-accent); color: #fff; }
+  border-radius: 10px; font-weight: 700; font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: box-shadow 0.15s ease; }
+.btn.accent { background: var(--deck-accent); border-color: var(--deck-accent); color: #08080a; box-shadow: 0 0 14px -2px var(--deck-accent); }
 .btn.small { padding: 6px 9px; font-size: 0.74rem; }
 .track-list { max-height: 130px; overflow-y: auto; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 10px; }
 .track-item { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 7px 10px;
   font-size: 0.78rem; border-bottom: 1px solid var(--line); cursor: pointer; }
 .track-item:last-child { border-bottom: none; }
 .track-item:hover { background: var(--surface-2); }
-.track-item.active { background: var(--deck-accent); color: #fff; }
+.track-item.active { background: var(--deck-accent); color: #08080a; font-weight: 700; }
 .track-item .tname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-item .tdel { opacity: 0.7; cursor: pointer; padding: 2px 4px; }
 .track-item .tpreview { opacity: 0.85; cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
 .empty-note { padding: 10px; font-size: 0.76rem; color: var(--ink-soft); font-style: italic; text-align: center; }
 
 .now-playing { font-weight: 800; font-size: 0.9rem; margin-bottom: 8px; word-break: break-word; min-height: 1.2em; }
-.waveform { width: 100%; height: 64px; display: block; border-radius: 8px; background: var(--surface-2); margin-bottom: 8px; cursor: pointer; }
+.waveform { width: 100%; height: 96px; display: block; border-radius: 8px; background: var(--surface-2); margin-bottom: 8px; cursor: pointer; }
 .seek-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .seek-row input[type="range"] { flex: 1; }
 .time-lbl { font-size: 0.7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -80,14 +83,31 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
 .loop-row, .eq-row, .tempo-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
 .loop-label { font-size: 0.72rem; color: var(--ink-soft); flex-basis: 100%; }
 
-.crossfader-card { background: var(--surface); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); text-align: center; }
-.crossfader-card h3 { margin: 0 0 10px; font-size: 0.9rem; }
+.crossfader-card { background: var(--surface); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow); text-align: center; border: 1px solid rgba(255,255,255,0.04); }
+.crossfader-card h3 { margin: 0 0 10px; font-size: 0.9rem; letter-spacing: 0.03em; }
 .cf-row { display: flex; align-items: center; gap: 10px; }
 .cf-row span { font-weight: 800; font-size: 0.85rem; }
 .cf-row span.a { color: var(--accentA); }
 .cf-row span.b { color: var(--accentB); }
 .cf-row input[type="range"] { flex: 1; height: 10px; }
+#crossfader { background: transparent; }
 .tempo-match-row { margin-top: 12px; }
+
+/* ---------- Chrome-only custom slider skin: dark track, glowing coloured thumb (LED aesthetic) ---------- */
+input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 5px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; margin-top: -6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accentA); box-shadow: 0 0 9px 2px var(--accentA), 0 0 0 3px var(--bg);
+  border: none;
+}
+.deck.deckB input[type="range"]::-webkit-slider-thumb,
+#previewSeek::-webkit-slider-thumb { background: var(--accentB); box-shadow: 0 0 9px 2px var(--accentB), 0 0 0 3px var(--bg); }
+#crossfader::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--accentA), var(--accentB)); border: none; }
+#crossfader::-webkit-slider-thumb { background: #fff; box-shadow: 0 0 10px 2px rgba(255,255,255,0.7), 0 0 0 3px var(--bg); }
+#masterVolume::-webkit-slider-thumb { background: var(--ink); box-shadow: 0 0 9px 2px rgba(242,241,238,0.5), 0 0 0 3px var(--bg); }
 
 .footer-note { text-align: center; color: var(--ink-soft); font-size: 0.76rem; margin-top: 30px; line-height: 1.7; }
 
@@ -310,6 +330,7 @@ header p { color: var(--ink-soft); font-size: 0.85rem; max-width: 480px; margin:
     </div>
     <div id="routingNote" style="font-size:0.7rem;color:var(--ink-soft);margin-bottom:12px;text-align:left"></div>
     <div class="now-playing" id="previewNowPlaying" style="text-align:left">Tap 🎧 next to any track in a deck's list to preview it here</div>
+    <canvas class="waveform" id="previewViz" height="64" style="cursor:default"></canvas>
     <div class="seek-row">
       <span class="time-lbl" id="previewCurTime">0:00</span>
       <input type="range" id="previewSeek" min="0" max="100" value="0" step="0.1">
@@ -401,15 +422,27 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const masterGain = audioCtx.createGain();
 masterGain.gain.value = 1;
 
-// A brickwall-style limiter sits after the volume boost so pushing past 100% gets louder without
-// harsh digital clipping - the same job a hardware limiter does at the end of a real mixer's signal chain.
+// Two-stage loudness maximizer, the same idea a mastering chain uses: a gentler compressor first
+// raises the *average* (perceived) loudness by narrowing dynamic range, then a fast brickwall
+// limiter catches peaks right at the ceiling so pushing past 100% gets louder without harsh clipping.
+// (Web Audio can only amplify the digital signal - if the OS/speaker volume itself is turned down,
+// no amount of gain here can make it physically louder, so check that too.)
+const masterComp = audioCtx.createDynamicsCompressor();
+masterComp.threshold.value = -24;
+masterComp.knee.value = 12;
+masterComp.ratio.value = 4;
+masterComp.attack.value = 0.006;
+masterComp.release.value = 0.15;
+
 const masterLimiter = audioCtx.createDynamicsCompressor();
-masterLimiter.threshold.value = -3;
+masterLimiter.threshold.value = -1;
 masterLimiter.knee.value = 0;
 masterLimiter.ratio.value = 20;
 masterLimiter.attack.value = 0.001;
 masterLimiter.release.value = 0.1;
-masterGain.connect(masterLimiter);
+
+masterGain.connect(masterComp);
+masterComp.connect(masterLimiter);
 masterLimiter.connect(audioCtx.destination);
 
 // Also tap the master bus (post-limiter) to a MediaStreamDestination so recordings match what you actually hear.
@@ -500,6 +533,15 @@ function computeWaveformPeaks(buffer, buckets){
       if(sample > max) max = sample;
     }
     peaks[b] = max;
+  }
+
+  // Normalize to this track's own loudest bucket, then apply a contrast curve (exponent > 1)
+  // so quiet passages dip down more and loud passages stay near the top - the beat swings read
+  // clearly instead of looking like a flat wall, regardless of how the track happens to be mastered.
+  let loudest = 0;
+  for(let b = 0; b < buckets; b++) if(peaks[b] > loudest) loudest = peaks[b];
+  if(loudest > 0.001){
+    for(let b = 0; b < buckets; b++) peaks[b] = Math.pow(peaks[b] / loudest, 1.6);
   }
   return peaks;
 }
@@ -909,16 +951,54 @@ const previewAudio = document.getElementById('previewAudio');
 let previewTrackId = null;
 let previewTrackDeck = null;
 
+// A separate AudioContext for the preview player (not the decks' audioCtx) so it can be routed to
+// its own output device independently, and so it can be tapped for the visualiser without touching
+// the decks' signal path at all.
+const previewCtx = new (window.AudioContext || window.webkitAudioContext)();
+const previewSource = previewCtx.createMediaElementSource(previewAudio);
+const previewAnalyser = previewCtx.createAnalyser();
+previewAnalyser.fftSize = 64;
+previewSource.connect(previewAnalyser);
+previewAnalyser.connect(previewCtx.destination);
+const previewVizData = new Uint8Array(previewAnalyser.frequencyBinCount);
+
 async function previewTrack(track, deck){
   if(previewAudio.dataset.blobUrl) URL.revokeObjectURL(previewAudio.dataset.blobUrl);
   const url = URL.createObjectURL(track.blob);
   previewAudio.dataset.blobUrl = url;
   previewAudio.src = url;
+  if(previewCtx.state === 'suspended') await previewCtx.resume();
   previewAudio.play().catch(() => {});
   previewTrackId = track.id;
   previewTrackDeck = deck;
   document.getElementById('previewNowPlaying').textContent = '🎧 ' + track.name;
 }
+
+function drawPreviewViz(){
+  const canvas = document.getElementById('previewViz');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 300, h = canvas.clientHeight || 64;
+  if(canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)){
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  previewAnalyser.getByteFrequencyData(previewVizData);
+  const barCount = previewVizData.length;
+  const barW = w / barCount;
+  for(let i = 0; i < barCount; i++){
+    const amp = (previewVizData[i] / 255) * h;
+    const t = i / barCount;
+    const r = Math.round(255 + t * (34 - 255));
+    const g = Math.round(176 + t * (199 - 176));
+    const b = Math.round(32 + t * (181 - 32));
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(i * barW, h - amp, Math.max(1, barW * 0.8), amp);
+  }
+  requestAnimationFrame(drawPreviewViz);
+}
+requestAnimationFrame(drawPreviewViz);
 
 function clearPreview(){
   previewAudio.pause();
@@ -952,8 +1032,9 @@ previewAudio.addEventListener('timeupdate', () => {
   document.getElementById('previewCurTime').textContent = fmtTime(previewAudio.currentTime);
 });
 document.getElementById('previewSeek').addEventListener('input', (e) => { previewAudio.currentTime = Number(e.target.value); });
-document.getElementById('previewPlayBtn').addEventListener('click', () => {
+document.getElementById('previewPlayBtn').addEventListener('click', async () => {
   if(!previewAudio.src) return;
+  if(previewCtx.state === 'suspended') await previewCtx.resume();
   previewAudio.play();
 });
 document.getElementById('previewPauseBtn').addEventListener('click', () => {
@@ -973,7 +1054,7 @@ const routingNote = document.getElementById('routingNote');
 
 async function populateOutputDevices(){
   const mainSupported = typeof audioCtx.setSinkId === 'function';
-  const previewSupported = typeof previewAudio.setSinkId === 'function';
+  const previewSupported = typeof previewCtx.setSinkId === 'function';
   if(!mainSupported && !previewSupported){
     routingNote.textContent = "This browser doesn't support choosing specific output devices — decks and preview both follow your system's default output.";
     mainDeviceSelect.disabled = true; previewDeviceSelect.disabled = true;
@@ -1017,8 +1098,8 @@ mainDeviceSelect.addEventListener('change', async (e) => {
   }
 });
 previewDeviceSelect.addEventListener('change', async (e) => {
-  if(previewAudio.setSinkId){
-    try{ await previewAudio.setSinkId(e.target.value); }
+  if(typeof previewCtx.setSinkId === 'function'){
+    try{ await previewCtx.setSinkId(e.target.value); }
     catch(err){ routingNote.textContent = "Couldn't switch the preview to that device."; }
   }
 });
