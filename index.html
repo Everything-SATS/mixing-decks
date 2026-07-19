@@ -581,7 +581,7 @@ async function renderTrackList(deck){
       e.stopPropagation();
       const id = Number(previewBtn.dataset.preview);
       const t = tracks.find(x => x.id === id);
-      if(t) previewTrack(t);
+      if(t) previewTrack(t, deck);
     });
   });
   listEl.querySelectorAll('[data-del]').forEach(delBtn => {
@@ -592,6 +592,7 @@ async function renderTrackList(deck){
         d.audio.pause(); d.audio.removeAttribute('src'); d.currentTrackId = null;
         document.getElementById('nowPlaying-' + deck).textContent = 'No track loaded';
       }
+      if(deck === previewTrackDeck && id === previewTrackId) clearPreview();
       await deleteTrack(deck, id);
       renderTrackList(deck);
     });
@@ -893,14 +894,32 @@ function updateLoopLabel(deck){
 // disturbs whatever's live in the mix. Where the browser supports it (Chrome/Edge, not Safari),
 // it can be routed to a specific output device - e.g. headphones - separately from the decks. ----------
 const previewAudio = document.getElementById('previewAudio');
+let previewTrackId = null;
+let previewTrackDeck = null;
 
-async function previewTrack(track){
+async function previewTrack(track, deck){
   if(previewAudio.dataset.blobUrl) URL.revokeObjectURL(previewAudio.dataset.blobUrl);
   const url = URL.createObjectURL(track.blob);
   previewAudio.dataset.blobUrl = url;
   previewAudio.src = url;
   previewAudio.play().catch(() => {});
+  previewTrackId = track.id;
+  previewTrackDeck = deck;
   document.getElementById('previewNowPlaying').textContent = '🎧 ' + track.name;
+}
+
+function clearPreview(){
+  previewAudio.pause();
+  if(previewAudio.dataset.blobUrl) URL.revokeObjectURL(previewAudio.dataset.blobUrl);
+  previewAudio.removeAttribute('src');
+  delete previewAudio.dataset.blobUrl;
+  previewTrackId = null;
+  previewTrackDeck = null;
+  document.getElementById('previewNowPlaying').textContent = "Tap 🎧 next to any track in a deck's list to preview it here";
+  document.getElementById('previewSeek').value = 0;
+  document.getElementById('previewCurTime').textContent = '0:00';
+  document.getElementById('previewDurTime').textContent = '0:00';
+  document.getElementById('previewPlayBtn').textContent = '▶ Play';
 }
 
 previewAudio.addEventListener('play', () => { document.getElementById('previewPlayBtn').textContent = '⏸ Pause'; });
